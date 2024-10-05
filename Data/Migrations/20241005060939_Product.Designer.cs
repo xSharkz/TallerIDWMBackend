@@ -10,7 +10,7 @@ using TallerIDWMBackend.Data;
 namespace TallerIDWMBackend.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241005055739_Product")]
+    [Migration("20241005060939_Product")]
     partial class Product
     {
         /// <inheritdoc />
