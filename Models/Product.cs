@@ -31,6 +31,13 @@ namespace TallerIDWMBackend.Models
         [DataType(DataType.ImageUrl)]
         [RegularExpression(@"^(https?://.*\.(png|jpg))$", ErrorMessage = "La URL de la imagen debe ser un enlace a un archivo .png o .jpg.")]
         public string ImageUrl { get; set; } = null!;
-        public string PublicId { get; set; } = null!;
+
+        public string PublicId { get; set; } = null!; // Identificador en Cloudinary
+
+        // Relación con CartItem
+        public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
+
+        // Relación con OrderItem
+        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     }
 }
