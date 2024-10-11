@@ -10,6 +10,7 @@ using System.Text;
 using TallerIDWMBackend.Models;
 using TallerIDWMBackend.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 namespace TallerIDWMBackend.Controllers
 {
     [ApiController]
@@ -100,6 +101,20 @@ namespace TallerIDWMBackend.Controllers
                 Token = tokenHandler.WriteToken(token),
                 Expiration = token.ValidTo
             });
+        }
+        
+        [HttpPost("logout")]
+        [Authorize]  // Asegúrate de que solo los usuarios autenticados puedan cerrar sesión
+        public IActionResult Logout()
+        {
+            var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return BadRequest(new { message = "Token no proporcionado." });
+            }
+
+            return Ok(new { message = "Sesión cerrada correctamente." });
         }
     }
 }
