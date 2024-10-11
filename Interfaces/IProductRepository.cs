@@ -10,6 +10,6 @@ namespace TallerIDWMBackend.Interfaces
     {
         Task<IEnumerable<Product>> GetPagedProductsAsync(string searchQuery, string type, string sortOrder, int pageNumber, int pageSize);
         Task<int> GetTotalProductsAsync(string searchQuery, string type);
-        Task<Product> GetProductByIdAsync(int id);
+        Task<Product> GetProductByIdAsync(long id);
     }
 }

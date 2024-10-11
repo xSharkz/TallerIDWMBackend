@@ -69,7 +69,7 @@ namespace TallerIDWMBackend.Repository
             return await productsQuery.CountAsync();
         }
 
-        public async Task<Product> GetProductByIdAsync(int id)
+        public async Task<Product> GetProductByIdAsync(long id)
         {
             var product = await _dataContext.Products.FindAsync(id);
 
