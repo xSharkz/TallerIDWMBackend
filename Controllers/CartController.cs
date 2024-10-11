@@ -112,7 +112,7 @@ namespace TallerIDWMBackend.Controllers
         public IActionResult Checkout()
         {
             // Verificar si el usuario está autenticado
-            if (!User.Identity.IsAuthenticated)
+            if (User?.Identity == null || !User.Identity.IsAuthenticated)
             {
                 return Unauthorized(new { message = "Debe iniciar sesión para realizar el pago." });
             }
