@@ -56,8 +56,11 @@ namespace TallerIDWMBackend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] Login login)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            // Verificar si el modelo es válido
+            if (!ModelState.IsValid) 
+                return BadRequest(ModelState);
 
+            // Buscar al usuario por su email
             var user = await _dataContext.Users.SingleOrDefaultAsync(u => u.Email == login.Email);
             if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.PasswordHash))
             {
@@ -66,13 +69,15 @@ namespace TallerIDWMBackend.Controllers
 
             // Generar el token JWT
             var tokenHandler = new JwtSecurityTokenHandler();
-            var secretKey = _configuration["Jwt:Key"];
+            var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY");
 
-            if (string.IsNullOrEmpty(secretKey))
+            // Verificar que la clave secreta esté configurada
+            if (string.IsNullOrEmpty(secretKey) || secretKey.Length < 16)
             {
-                return StatusCode(500, "Error en la configuración: La clave secreta de JWT no está configurada.");
+                return StatusCode(500, "Error en la configuración: La clave secreta de JWT no está configurada o es demasiado corta.");
             }
 
+            // Convertir la clave secreta en bytes
             var key = Encoding.ASCII.GetBytes(secretKey);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -82,11 +87,14 @@ namespace TallerIDWMBackend.Controllers
                     new Claim(ClaimTypes.Email, user.Email),
                     new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "Customer")
                 }),
-                Expires = DateTime.UtcNow.AddHours(1),
+                Expires = DateTime.UtcNow.AddHours(1), // Configurar expiración del token
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
+
+            // Crear el token
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
+            // Devolver el token y su expiración
             return Ok(new
             {
                 Token = tokenHandler.WriteToken(token),
