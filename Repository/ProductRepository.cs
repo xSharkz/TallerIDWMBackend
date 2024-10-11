@@ -11,11 +11,16 @@ namespace TallerIDWMBackend.Repository
 {
     public class ProductRepository : IProductRepository
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ApplicationDbContext _dataContext;
+
+        public ProductRepository(ApplicationDbContext dataContext)
+        {
+            _dataContext = dataContext;
+        }
         public async Task<IEnumerable<Product>> GetPagedProductsAsync(string searchQuery, string type, string sortOrder, int pageNumber, int pageSize)
         {
             // Filtrar productos con stock mayor que 0
-            var productsQuery = _context.Products.Where(p => p.StockQuantity > 0).AsQueryable();
+            var productsQuery = _dataContext.Products.Where(p => p.StockQuantity > 0).AsQueryable();
 
             // Filtro de búsqueda por nombre del producto
             if (!string.IsNullOrEmpty(searchQuery))
@@ -49,7 +54,7 @@ namespace TallerIDWMBackend.Repository
 
         public async Task<int> GetTotalProductsAsync(string searchQuery, string type)
         {
-            var productsQuery = _context.Products.Where(p => p.StockQuantity > 0).AsQueryable();
+            var productsQuery = _dataContext.Products.Where(p => p.StockQuantity > 0).AsQueryable();
 
             if (!string.IsNullOrEmpty(searchQuery))
             {
@@ -66,7 +71,7 @@ namespace TallerIDWMBackend.Repository
 
         public async Task<Product> GetProductByIdAsync(int id)
         {
-            return await _context.Products.FindAsync(id);
+            return await _dataContext.Products.FindAsync(id);
         }
     }
 }
