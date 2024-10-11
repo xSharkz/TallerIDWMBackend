@@ -25,6 +25,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var seeder = services.GetRequiredService<DataSeeder>();
     await seeder.SeedProductsAsync();
+    await seeder.SeedPostsAsync();
 }
 if (app.Environment.IsDevelopment())
 {

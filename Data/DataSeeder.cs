@@ -34,5 +34,23 @@ namespace TallerIDWMBackend.Data
             await _context.Products.AddRangeAsync(products);
             await _context.SaveChangesAsync();
         }
+
+        public async Task SeedPostsAsync()
+        {
+            if (await _context.Posts.AnyAsync()) return;
+
+            var faker = new Faker<Post>()
+                .RuleFor(p => p.Title, f => f.Lorem.Sentence())
+                .RuleFor(p => p.Description, f => f.Lorem.Paragraph())
+                .RuleFor(p => p.Url, f => f.Internet.Url())
+                .RuleFor(p => p.PublicId, f => Guid.NewGuid().ToString())
+                .FinishWith((f, p) => Console.WriteLine($"Post generado: {p.Title}, URL: {p.Url}"));
+
+            var posts = faker.Generate(5);
+
+            await _context.Posts.AddRangeAsync(posts);
+            await _context.SaveChangesAsync();
+        }
+
     }
 }
