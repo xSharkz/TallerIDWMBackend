@@ -13,7 +13,8 @@ namespace TallerIDWMBackend.Models
         public long OrderId { get; set; } // Referencia al pedido.
 
         [Required]
-        public long ProductId { get; set; } // Referencia al producto.
+        public long ProductId { get; set; }
+        public Product Product { get; set; } = null!;
 
         [Required]
         [Range(1, 1000)]
@@ -22,8 +23,6 @@ namespace TallerIDWMBackend.Models
         [Required]
         [Range(1, 100000000)]
         public decimal UnitPrice { get; set; } // Precio unitario al momento de la compra.
-
-        public Product Product { get; set; } = null!;
         public Order Order { get; set; } = null!;
     }
 }

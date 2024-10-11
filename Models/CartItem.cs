@@ -10,7 +10,8 @@ namespace TallerIDWMBackend.Models
         public long Id { get; set; }
 
         [Required]
-        public long ProductId { get; set; } // Referencia al producto.
+        public long ProductId { get; set; }
+        public Product Product { get; set; } = null!;
 
         [Required]
         [Range(1, 1000)]
@@ -19,6 +20,5 @@ namespace TallerIDWMBackend.Models
         [Required]
         public string SessionId { get; set; } = null!; // Identificador de la sesión del usuario no autenticado.
 
-        public Product Product { get; set; } = null!;
     }
 }
