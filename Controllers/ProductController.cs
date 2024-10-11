@@ -39,37 +39,17 @@ namespace TallerIDWMBackend.Controllers
             });
         }
 
-        // POST: api/product/add-to-cart/{id}
-        [HttpPost("add-to-cart/{id}")]
-        public async Task<IActionResult> AddToCart(long id)
+        // GET: api/product/{id}
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetProductById(long id)
         {
             var product = await _productRepository.GetProductByIdAsync(id);
-
-            if (product == null || product.StockQuantity <= 0)
+            if (product == null)
             {
-                return NotFound("Producto no encontrado o sin stock.");
+                return NotFound("Producto no encontrado.");
             }
 
-            // Gestionar el carrito de compras con cookies
-            var cart = Request.Cookies["cart"];
-            var cartItems = string.IsNullOrEmpty(cart) ? new List<long>() : cart.Split(",").Select(long.Parse).ToList();
-
-            // Verificar si el producto ya está en el carrito
-            if (cartItems.Contains(id))
-            {
-                return BadRequest("El producto ya está en el carrito.");
-            }
-
-            cartItems.Add(id);
-
-            // Guardar el carrito en una cookie
-            Response.Cookies.Append("cart", string.Join(",", cartItems), new CookieOptions
-            {
-                Expires = DateTimeOffset.Now.AddDays(7)
-            });
-
-            return Ok("Producto añadido al carrito.");
+            return Ok(product);
         }
-        
     }
 }

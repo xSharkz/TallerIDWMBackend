@@ -20,39 +20,43 @@ namespace TallerIDWMBackend.Controllers
             _dataContext = dataContext;
         }
 
-        // 1. Visualizar carrito
-        [HttpGet("view")]
-        public async Task<IActionResult> ViewCart(string sessionId)
+        // 1. Agregar un producto al carrito
+        [HttpPost("add-to-cart/{productId}")]
+        public async Task<IActionResult> AddToCart(long productId, string sessionId)
         {
-            // Obtener los productos en el carrito del usuario basado en la sesión
-            var cartItems = await _dataContext.CartItems
-                .Include(ci => ci.Product)
-                .Where(ci => ci.SessionId == sessionId)
-                .ToListAsync();
+            var product = await _dataContext.Products.FindAsync(productId);
 
-            if (!cartItems.Any())
+            if (product == null || product.StockQuantity <= 0)
             {
-                return Ok(new { message = "El carrito está vacío." });
+                return NotFound("Producto no encontrado o sin stock.");
             }
 
-            // Calcular el total
-            var totalAmount = cartItems.Sum(ci => ci.Product.Price * ci.Quantity);
+            // Verificar si el producto ya está en el carrito
+            var existingCartItem = await _dataContext.CartItems
+                .FirstOrDefaultAsync(ci => ci.ProductId == productId && ci.SessionId == sessionId);
 
-            return Ok(new
+            if (existingCartItem != null)
             {
-                Items = cartItems.Select(ci => new
+                existingCartItem.Quantity++;
+            }
+            else
+            {
+                var newCartItem = new CartItem
                 {
-                    ci.Product.Name,
-                    ci.Product.Price,
-                    ci.Quantity,
-                    Subtotal = ci.Product.Price * ci.Quantity
-                }),
-                Total = totalAmount
-            });
+                    ProductId = productId,
+                    Quantity = 1,
+                    SessionId = sessionId
+                };
+                await _dataContext.CartItems.AddAsync(newCartItem);
+            }
+
+            await _dataContext.SaveChangesAsync();
+
+            return Ok("Producto añadido al carrito.");
         }
 
         // 2. Aumentar la cantidad de un producto en el carrito
-        [HttpPost("increase")]
+        [HttpPost("increase/{cartItemId}")]
         public async Task<IActionResult> IncreaseQuantity(long cartItemId)
         {
             var cartItem = await _dataContext.CartItems.FindAsync(cartItemId);
@@ -68,7 +72,7 @@ namespace TallerIDWMBackend.Controllers
         }
 
         // 3. Disminuir la cantidad de un producto en el carrito
-        [HttpPost("decrease")]
+        [HttpPost("decrease/{cartItemId}")]
         public async Task<IActionResult> DecreaseQuantity(long cartItemId)
         {
             var cartItem = await _dataContext.CartItems.FindAsync(cartItemId);
@@ -80,45 +84,72 @@ namespace TallerIDWMBackend.Controllers
             if (cartItem.Quantity > 1)
             {
                 cartItem.Quantity--;
+                await _dataContext.SaveChangesAsync();
+                return Ok(new { message = "Cantidad disminuida." });
             }
             else
             {
                 return BadRequest(new { message = "La cantidad mínima es 1." });
             }
-
-            await _dataContext.SaveChangesAsync();
-
-            return Ok(new { message = "Cantidad disminuida." });
         }
 
-        // 4. Eliminar un producto del carrito
-        [HttpDelete("remove")]
-        public async Task<IActionResult> RemoveProduct(long cartItemId)
+        // 4. Visualizar carrito
+        [HttpGet("view")]
+        public async Task<IActionResult> ViewCart(string sessionId)
         {
-            var cartItem = await _dataContext.CartItems.FindAsync(cartItemId);
-            if (cartItem == null)
+            var cartItems = await _dataContext.CartItems
+                .Include(ci => ci.Product)
+                .Where(ci => ci.SessionId == sessionId)
+                .ToListAsync();
+
+            if (!cartItems.Any())
             {
-                return NotFound(new { message = "El producto no existe en el carrito." });
+                return Ok(new { message = "El carrito está vacío." });
             }
 
-            _dataContext.CartItems.Remove(cartItem);
-            await _dataContext.SaveChangesAsync();
+            var totalAmount = cartItems.Sum(ci => ci.Product.Price * ci.Quantity);
 
-            return Ok(new { message = "Producto eliminado del carrito." });
+            return Ok(new
+            {
+                Items = cartItems.Select(ci => new
+                {
+                    ci.Product.Name,
+                    ci.Product.Price,
+                    ci.Quantity,
+                    Subtotal = ci.Product.Price * ci.Quantity
+                }),
+                Total = totalAmount
+            });
         }
 
         // 5. Mostrar botón de pago (requiere inicio de sesión)
         [HttpGet("checkout")]
         public IActionResult Checkout()
         {
-            // Verificar si el usuario está autenticado
             if (User?.Identity == null || !User.Identity.IsAuthenticated)
             {
                 return Unauthorized(new { message = "Debe iniciar sesión para realizar el pago." });
             }
 
-            // Si el usuario está autenticado, continuar con el proceso de pago
             return Ok(new { message = "Proceso de pago iniciado." });
+        }
+
+        // 6. Eliminar un producto del carrito
+        [HttpPost("remove/{id}")]
+        public async Task<IActionResult> RemoveFromCart(long id, string sessionId)
+        {
+            var cartItem = await _dataContext.CartItems
+                .FirstOrDefaultAsync(ci => ci.ProductId == id && ci.SessionId == sessionId);
+
+            if (cartItem == null)
+            {
+                return BadRequest("El producto no está en el carrito.");
+            }
+
+            _dataContext.CartItems.Remove(cartItem);
+            await _dataContext.SaveChangesAsync();
+
+            return Ok("Producto eliminado del carrito.");
         }
     }
 }
