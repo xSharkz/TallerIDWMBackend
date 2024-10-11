@@ -57,9 +57,12 @@ namespace TallerIDWMBackend.Controllers
 
         // 2. Aumentar la cantidad de un producto en el carrito
         [HttpPost("increase/{cartItemId}")]
-        public async Task<IActionResult> IncreaseQuantity(long cartItemId)
+        public async Task<IActionResult> IncreaseQuantity(long cartItemId, string sessionId)
         {
-            var cartItem = await _dataContext.CartItems.FindAsync(cartItemId);
+            // Asegúrate de que el sessionId se pase como parámetro
+            var cartItem = await _dataContext.CartItems
+                .FirstOrDefaultAsync(ci => ci.Id == cartItemId && ci.SessionId == sessionId);
+
             if (cartItem == null)
             {
                 return NotFound(new { message = "El producto no existe en el carrito." });
@@ -113,6 +116,7 @@ namespace TallerIDWMBackend.Controllers
             {
                 Items = cartItems.Select(ci => new
                 {
+                    ci.Id,
                     ci.Product.Name,
                     ci.Product.Price,
                     ci.Quantity,
@@ -126,6 +130,7 @@ namespace TallerIDWMBackend.Controllers
         [HttpGet("checkout")]
         public IActionResult Checkout()
         {
+            Console.WriteLine($"Is Authenticated: {User.Identity.IsAuthenticated}");
             if (User?.Identity == null || !User.Identity.IsAuthenticated)
             {
                 return Unauthorized(new { message = "Debe iniciar sesión para realizar el pago." });

@@ -42,8 +42,10 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false, // Opcional: puedes configurarlo si tienes un emisor específico.
-        ValidateAudience = false, // Opcional: puedes configurarlo si tienes una audiencia específica.
+        ValidateIssuer = true, // Opcional: puedes configurarlo si tienes un emisor específico.
+        ValidateAudience = true, // Opcional: puedes configurarlo si tienes una audiencia específica.
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero // Elimina retrasos de expiración del token.
     };
