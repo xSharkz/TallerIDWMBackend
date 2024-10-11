@@ -66,7 +66,14 @@ namespace TallerIDWMBackend.Controllers
 
             // Generar el token JWT
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+            var secretKey = _configuration["Jwt:Key"];
+
+            if (string.IsNullOrEmpty(secretKey))
+            {
+                return StatusCode(500, "Error en la configuración: La clave secreta de JWT no está configurada.");
+            }
+
+            var key = Encoding.ASCII.GetBytes(secretKey);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
