@@ -13,5 +13,7 @@ namespace TallerIDWMBackend.Data
 
         }
         public DbSet<Product> Products { get; set;}
+
+        public DbSet<Post> Posts { get; set;}
     }
 }
