@@ -11,8 +11,8 @@ namespace TallerIDWMBackend.Controllers
     [ApiController]
     public class ProductController : ControllerBase
     {
-        private readonly IProductRepository  _productRepository;
-        
+        private readonly IProductRepository _productRepository;
+
         public ProductController(IProductRepository productRepository)
         {
             _productRepository = productRepository;
@@ -39,9 +39,9 @@ namespace TallerIDWMBackend.Controllers
             });
         }
 
-        // POST: api/product/add/{id}
-        [HttpPost("add/{id}")]
-        public async Task<IActionResult> AddProduct(int id)
+        // POST: api/product/add-to-cart/{id}
+        [HttpPost("add-to-cart/{id}")]
+        public async Task<IActionResult> AddToCart(int id)
         {
             var product = await _productRepository.GetProductByIdAsync(id);
 
@@ -53,6 +53,13 @@ namespace TallerIDWMBackend.Controllers
             // Gestionar el carrito de compras con cookies
             var cart = Request.Cookies["cart"];
             var cartItems = string.IsNullOrEmpty(cart) ? new List<int>() : cart.Split(",").Select(int.Parse).ToList();
+
+            // Verificar si el producto ya está en el carrito
+            if (cartItems.Contains(id))
+            {
+                return BadRequest("El producto ya está en el carrito.");
+            }
+
             cartItems.Add(id);
 
             // Guardar el carrito en una cookie
