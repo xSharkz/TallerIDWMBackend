@@ -71,7 +71,14 @@ namespace TallerIDWMBackend.Repository
 
         public async Task<Product> GetProductByIdAsync(int id)
         {
-            return await _dataContext.Products.FindAsync(id);
+            var product = await _dataContext.Products.FindAsync(id);
+
+            if (product == null)
+            {
+                throw new NullReferenceException($"Product with ID {id} not found.");
+            }
+
+            return product;
         }
     }
 }
