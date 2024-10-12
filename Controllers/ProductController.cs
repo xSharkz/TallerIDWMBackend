@@ -27,15 +27,39 @@ namespace TallerIDWMBackend.Controllers
             int pageNumber = 1, 
             int pageSize = 10)
         {
+            // Limitar los valores de pageSize y pageNumber
+            if (pageSize < 1 || pageSize > 100)
+            {
+                pageSize = 10; // Límite predeterminado
+            }
+
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
             var products = await _productRepository.GetPagedProductsAsync(searchQuery, type, sortOrder, pageNumber, pageSize);
             var totalItems = await _productRepository.GetTotalProductsAsync(searchQuery, type);
+
+            if (products == null || !products.Any())
+            {
+                return NotFound(new { message = "No se encontraron productos." });
+            }
 
             return Ok(new
             {
                 TotalItems = totalItems,
                 PageNumber = pageNumber,
                 PageSize = pageSize,
-                Products = products
+                Products = products.Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.Type,
+                    p.Price,
+                    p.StockQuantity,
+                    p.ImageUrl
+                })
             });
         }
 
@@ -46,10 +70,18 @@ namespace TallerIDWMBackend.Controllers
             var product = await _productRepository.GetProductByIdAsync(id);
             if (product == null)
             {
-                return NotFound("Producto no encontrado.");
+                return NotFound(new { message = "Producto no encontrado." });
             }
 
-            return Ok(product);
+            return Ok(new
+            {
+                product.Id,
+                product.Name,
+                product.Type,
+                product.Price,
+                product.StockQuantity,
+                product.ImageUrl
+            });
         }
     }
 }

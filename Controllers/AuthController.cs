@@ -53,7 +53,6 @@ namespace TallerIDWMBackend.Controllers
             return Ok("Usuario registrado exitosamente.");
         }
 
-        // POST: api/auth/login
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] Login login)
         {
@@ -94,11 +93,24 @@ namespace TallerIDWMBackend.Controllers
 
             // Crear el token
             var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
 
-            // Devolver el token y su expiración
+            // Establecer la cookie con el token JWT
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true, // La cookie no será accesible vía JavaScript
+                Secure = true, // Solo se enviará por HTTPS
+                SameSite = SameSiteMode.Strict, // Evitar ataques CSRF
+                Expires = token.ValidTo // Expirará al mismo tiempo que el token
+            };
+
+            // Añadir la cookie a la respuesta
+            Response.Cookies.Append("jwt_token", tokenString, cookieOptions);
+
+            // También puedes devolver la información en el cuerpo de la respuesta si es necesario
             return Ok(new
             {
-                Token = tokenHandler.WriteToken(token),
+                Message = "Inicio de sesión exitoso",
                 Expiration = token.ValidTo
             });
         }
@@ -107,12 +119,27 @@ namespace TallerIDWMBackend.Controllers
         [Authorize]  // Asegúrate de que solo los usuarios autenticados puedan cerrar sesión
         public IActionResult Logout()
         {
-            var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            
+            // Intentar obtener el token desde las cookies
+            var token = HttpContext.Request.Cookies["jwt_token"];
+
+            // Si no se encuentra el token en la cookie
             if (string.IsNullOrWhiteSpace(token))
             {
-                return BadRequest(new { message = "Token no proporcionado." });
+                return BadRequest(new { message = "No se encontró el token en la cookie." });
             }
+
+            // Opcionalmente: Aquí podrías añadir el token a una lista negra (Blacklist) si implementas una lógica de invalidación de tokens en tu aplicación
+
+            // Eliminar la cookie jwt_token al hacer logout (establecer una expiración en el pasado)
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true, // Asegura que la cookie se maneje a través de HTTPS
+                Expires = DateTime.UtcNow.AddDays(-1), // Fecha en el pasado para eliminar la cookie
+                SameSite = SameSiteMode.Strict
+            };
+
+            Response.Cookies.Append("jwt_token", "", cookieOptions);
 
             return Ok(new { message = "Sesión cerrada correctamente." });
         }

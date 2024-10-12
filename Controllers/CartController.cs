@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TallerIDWMBackend.Models;
 using TallerIDWMBackend.Data;
+using Microsoft.AspNetCore.Authorization;
+using Newtonsoft.Json;
 
 namespace TallerIDWMBackend.Controllers
 {
@@ -22,7 +24,8 @@ namespace TallerIDWMBackend.Controllers
 
         // 1. Agregar un producto al carrito
         [HttpPost("add-to-cart/{productId}")]
-        public async Task<IActionResult> AddToCart(long productId, string sessionId)
+        [Authorize]
+        public async Task<IActionResult> AddToCart(long productId)
         {
             var product = await _dataContext.Products.FindAsync(productId);
 
@@ -31,92 +34,152 @@ namespace TallerIDWMBackend.Controllers
                 return NotFound("Producto no encontrado o sin stock.");
             }
 
-            // Verificar si el producto ya está en el carrito
-            var existingCartItem = await _dataContext.CartItems
-                .FirstOrDefaultAsync(ci => ci.ProductId == productId && ci.SessionId == sessionId);
+            // Obtener el carrito actual de las cookies (si existe)
+            var cartCookie = Request.Cookies["cart"];
+            List<CartItem> cartItems;
 
+            // Verificar si la cookie está vacía o malformada
+            if (string.IsNullOrEmpty(cartCookie))
+            {
+                cartItems = new List<CartItem>();
+            }
+            else
+            {
+                try
+                {
+                    // Intentar deserializar la cookie como una lista de CartItem
+                    cartItems = JsonConvert.DeserializeObject<List<CartItem>>(cartCookie);
+
+                    // Asegurarse de que sea una lista válida
+                    if (cartItems == null)
+                    {
+                        return BadRequest("El carrito no contiene datos válidos.");
+                    }
+                }
+                catch (JsonSerializationException)
+                {
+                    // Manejar el caso en que la cookie esté corrupta o malformada
+                    return BadRequest("Error al deserializar el carrito. Reinicie el carrito.");
+                }
+            }
+
+            // Verificar si el producto ya está en el carrito
+            var existingCartItem = cartItems.FirstOrDefault(ci => ci.ProductId == productId);
             if (existingCartItem != null)
             {
+                // Incrementar la cantidad si ya existe en el carrito
                 existingCartItem.Quantity++;
             }
             else
             {
-                var newCartItem = new CartItem
+                // Añadir nuevo producto al carrito (solo con ProductId y Quantity)
+                cartItems.Add(new CartItem
                 {
-                    ProductId = productId,
+                    ProductId = product.Id,
                     Quantity = 1,
-                    SessionId = sessionId
-                };
-                await _dataContext.CartItems.AddAsync(newCartItem);
+                    SessionId = "your-session-id" // Cambia esto según cómo gestiones la sesión
+                });
             }
 
-            await _dataContext.SaveChangesAsync();
+            // Guardar el carrito actualizado en las cookies
+            Response.Cookies.Append("cart", JsonConvert.SerializeObject(cartItems), new CookieOptions
+            {
+                Expires = DateTimeOffset.Now.AddDays(7),
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict
+            });
 
-            return Ok("Producto añadido al carrito.");
+            return Ok(new { message = "Producto añadido al carrito." });
         }
 
-        // 2. Aumentar la cantidad de un producto en el carrito
-        [HttpPost("increase/{cartItemId}")]
-        public async Task<IActionResult> IncreaseQuantity(long cartItemId, string sessionId)
+
+        [HttpPost("update-quantity/{productId}")]
+        [Authorize]
+        public IActionResult UpdateQuantity(long productId, [FromBody] int newQuantity)
         {
-            // Asegúrate de que el sessionId se pase como parámetro
-            var cartItem = await _dataContext.CartItems
-                .FirstOrDefaultAsync(ci => ci.Id == cartItemId && ci.SessionId == sessionId);
-
-            if (cartItem == null)
+            var cartCookie = Request.Cookies["cart"];
+            
+            if (string.IsNullOrWhiteSpace(cartCookie))
             {
-                return NotFound(new { message = "El producto no existe en el carrito." });
+                return BadRequest(new { message = "El carrito está vacío." });
             }
 
-            cartItem.Quantity++;
-            await _dataContext.SaveChangesAsync();
+            var cartItems = JsonConvert.DeserializeObject<List<CartItem>>(cartCookie);
+            var item = cartItems.FirstOrDefault(p => p.ProductId == productId);
+            if (item == null)
+            {
+                return NotFound(new { message = "Producto no encontrado en el carrito." });
+            }
 
-            return Ok(new { message = "Cantidad aumentada." });
+            if (newQuantity <= 0)
+            {
+                return BadRequest(new { message = "La cantidad debe ser mayor que 0." });
+            }
+
+            item.Quantity = newQuantity;
+
+            // Guardar el carrito actualizado
+            Response.Cookies.Append("cart", JsonConvert.SerializeObject(cartItems), new CookieOptions
+            {
+                Expires = DateTimeOffset.Now.AddDays(7),
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict
+            });
+
+            return Ok(new { message = "Cantidad actualizada.", cartItems });
         }
 
-        // 3. Disminuir la cantidad de un producto en el carrito
-        [HttpPost("decrease/{cartItemId}")]
-        public async Task<IActionResult> DecreaseQuantity(long cartItemId)
-        {
-            var cartItem = await _dataContext.CartItems.FindAsync(cartItemId);
-            if (cartItem == null)
-            {
-                return NotFound(new { message = "El producto no existe en el carrito." });
-            }
-
-            if (cartItem.Quantity > 1)
-            {
-                cartItem.Quantity--;
-                await _dataContext.SaveChangesAsync();
-                return Ok(new { message = "Cantidad disminuida." });
-            }
-            else
-            {
-                return BadRequest(new { message = "La cantidad mínima es 1." });
-            }
-        }
 
         // 4. Visualizar carrito
         [HttpGet("view")]
-        public async Task<IActionResult> ViewCart(string sessionId)
+        [Authorize]
+        public async Task<IActionResult> ViewCart()
         {
-            var cartItems = await _dataContext.CartItems
-                .Include(ci => ci.Product)
-                .Where(ci => ci.SessionId == sessionId)
-                .ToListAsync();
+            // Obtener la cookie del carrito
+            var cartCookie = Request.Cookies["cart"];
 
-            if (!cartItems.Any())
+            if (string.IsNullOrWhiteSpace(cartCookie))
             {
                 return Ok(new { message = "El carrito está vacío." });
             }
 
+            // Deserializar el carrito desde las cookies
+            List<CartItem> cartItems;
+            try
+            {
+                cartItems = JsonConvert.DeserializeObject<List<CartItem>>(cartCookie);
+            }
+            catch (JsonSerializationException)
+            {
+                return BadRequest("Error al deserializar el carrito.");
+            }
+
+            if (cartItems == null || !cartItems.Any())
+            {
+                return Ok(new { message = "El carrito está vacío." });
+            }
+
+            // Obtener la lista de productos desde la base de datos
+            var productIds = cartItems.Select(ci => ci.ProductId).ToList();
+            var products = await _dataContext.Products
+                .Where(p => productIds.Contains(p.Id))
+                .ToListAsync();
+
+            // Asociar los productos con los CartItems
+            foreach (var cartItem in cartItems)
+            {
+                cartItem.Product = products.FirstOrDefault(p => p.Id == cartItem.ProductId);
+            }
+
+            // Calcular el total a pagar
             var totalAmount = cartItems.Sum(ci => ci.Product.Price * ci.Quantity);
 
             return Ok(new
             {
                 Items = cartItems.Select(ci => new
                 {
-                    ci.Id,
                     ci.Product.Name,
                     ci.Product.Price,
                     ci.Quantity,
@@ -126,35 +189,106 @@ namespace TallerIDWMBackend.Controllers
             });
         }
 
+
+        [HttpPost("remove-item/{productId}")]
+        [Authorize]
+        public IActionResult RemoveItem(long productId)
+        {
+            var cartCookie = Request.Cookies["cart"];
+            
+            if (string.IsNullOrWhiteSpace(cartCookie))
+            {
+                return BadRequest(new { message = "El carrito está vacío." });
+            }
+
+            var cartItems = JsonConvert.DeserializeObject<List<CartItem>>(cartCookie);
+            var item = cartItems.FirstOrDefault(p => p.ProductId == productId);
+            if (item == null)
+            {
+                return NotFound(new { message = "Producto no encontrado en el carrito." });
+            }
+
+            cartItems.Remove(item);
+
+            Response.Cookies.Append("cart", JsonConvert.SerializeObject(cartItems), new CookieOptions
+            {
+                Expires = DateTimeOffset.Now.AddDays(7),
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict
+            });
+
+            return Ok(new { message = "Producto eliminado del carrito.", cartItems });
+        }
+
+
         // 5. Mostrar botón de pago (requiere inicio de sesión)
         [HttpGet("checkout")]
-        public IActionResult Checkout()
+        [Authorize]
+        public async Task<IActionResult> Checkout()
         {
-            Console.WriteLine($"Is Authenticated: {User.Identity.IsAuthenticated}");
-            if (User?.Identity == null || !User.Identity.IsAuthenticated)
+            var cartCookie = Request.Cookies["cart"];
+            
+            if (string.IsNullOrWhiteSpace(cartCookie))
             {
-                return Unauthorized(new { message = "Debe iniciar sesión para realizar el pago." });
+                return BadRequest(new { message = "El carrito está vacío." });
             }
 
-            return Ok(new { message = "Proceso de pago iniciado." });
-        }
-
-        // 6. Eliminar un producto del carrito
-        [HttpPost("remove/{id}")]
-        public async Task<IActionResult> RemoveFromCart(long id, string sessionId)
-        {
-            var cartItem = await _dataContext.CartItems
-                .FirstOrDefaultAsync(ci => ci.ProductId == id && ci.SessionId == sessionId);
-
-            if (cartItem == null)
+            // Deserializar la cookie que contiene el carrito
+            var cartItems = JsonConvert.DeserializeObject<List<CartItem>>(cartCookie);
+            if (cartItems == null || !cartItems.Any())
             {
-                return BadRequest("El producto no está en el carrito.");
+                return BadRequest(new { message = "El carrito está vacío." });
             }
 
-            _dataContext.CartItems.Remove(cartItem);
-            await _dataContext.SaveChangesAsync();
+            // Obtener los IDs de los productos en el carrito
+            var productIds = cartItems.Select(ci => ci.ProductId).ToList();
 
-            return Ok("Producto eliminado del carrito.");
+            // Cargar los productos desde la base de datos
+            var products = await _dataContext.Products
+                .Where(p => productIds.Contains(p.Id))
+                .ToListAsync();
+
+            // Asignar los productos correspondientes a los CartItems
+            foreach (var cartItem in cartItems)
+            {
+                cartItem.Product = products.FirstOrDefault(p => p.Id == cartItem.ProductId);
+                if (cartItem.Product == null)
+                {
+                    return BadRequest(new { message = $"El producto con ID {cartItem.ProductId} no fue encontrado." });
+                }
+            }
+
+            // Calcular el total a pagar
+            var total = cartItems.Sum(item => item.Product.Price * item.Quantity);
+
+            return Ok(new
+            {
+                Items = cartItems.Select(item => new
+                {
+                    ProductName = item.Product.Name,
+                    ProductPrice = item.Product.Price,
+                    item.Quantity,
+                    Subtotal = item.Product.Price * item.Quantity
+                }),
+                Total = total
+            });
         }
+
+        [HttpPost("clear-cart")]
+        public IActionResult ClearCart()
+        {
+            // Eliminar la cookie del carrito
+            Response.Cookies.Append("cart", "", new CookieOptions
+            {
+                Expires = DateTimeOffset.Now.AddDays(-1), // Establecer la cookie con una fecha en el pasado para eliminarla
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict
+            });
+
+            return Ok(new { message = "Carrito reiniciado." });
+        }
+
     }
 }
