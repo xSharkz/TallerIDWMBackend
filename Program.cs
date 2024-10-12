@@ -72,6 +72,7 @@ using (var scope = app.Services.CreateScope())
     var seeder = services.GetRequiredService<DataSeeder>();
     await seeder.SeedProductsAsync();
     await seeder.SeedPostsAsync();
+    await seeder.SeedAdminUserAsync();
 }
 
 // Swagger en desarrollo

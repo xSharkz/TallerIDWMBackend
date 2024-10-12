@@ -7,7 +7,7 @@ using TallerIDWMBackend.Data;
 
 #nullable disable
 
-namespace TallerIDWMBackend.Data.Migrations
+namespace TallerIDWMBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot

@@ -8,11 +8,11 @@ using TallerIDWMBackend.Data;
 
 #nullable disable
 
-namespace TallerIDWMBackend.Data.Migrations
+namespace TallerIDWMBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241011190744_Migracion")]
-    partial class Migracion
+    [Migration("20241012061119_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
