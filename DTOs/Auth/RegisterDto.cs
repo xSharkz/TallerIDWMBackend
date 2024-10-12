@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
-using System.ComponentModel.DataAnnotations;
 using TallerIDWMBackend.Validation;
-namespace TallerIDWMBackend.Models
+namespace TallerIDWMBackend.DTOs.Auth
 {
-    public class Register
+    public class RegisterDto
     {
         [Required]
         [StringLength(12)] // Asumiendo formato RUT
@@ -37,6 +37,4 @@ namespace TallerIDWMBackend.Models
         [Compare("Password", ErrorMessage = "La confirmación de contraseña no coincide.")]
         public string ConfirmPassword { get; set; } = null!;
     }
-
-
 }

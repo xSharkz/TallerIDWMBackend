@@ -11,6 +11,8 @@ using TallerIDWMBackend.Models;
 using TallerIDWMBackend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using TallerIDWMBackend.DTOs;
+using TallerIDWMBackend.DTOs.Auth;
 namespace TallerIDWMBackend.Controllers
 {
     [ApiController]
@@ -28,23 +30,24 @@ namespace TallerIDWMBackend.Controllers
 
         // POST: api/auth/register
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] Register register)
+        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid) 
+                return BadRequest(ModelState);
 
-            if (await _dataContext.Users.AnyAsync(u => u.Email == register.Email || u.Rut == register.Rut))
+            if (await _dataContext.Users.AnyAsync(u => u.Email == registerDto.Email || u.Rut == registerDto.Rut))
             {
                 return BadRequest("El correo electrónico o RUT ya están registrados.");
             }
 
             var user = new User
             {
-                Rut = register.Rut,
-                Name = register.Name,
-                BirthDate = register.BirthDate,
-                Email = register.Email,
-                Gender = register.Gender,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(register.Password)
+                Rut = registerDto.Rut,
+                Name = registerDto.Name,
+                BirthDate = registerDto.BirthDate,
+                Email = registerDto.Email,
+                Gender = registerDto.Gender,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
             };
 
             _dataContext.Users.Add(user);
@@ -54,15 +57,15 @@ namespace TallerIDWMBackend.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] Login login)
+        public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
             // Verificar si el modelo es válido
             if (!ModelState.IsValid) 
                 return BadRequest(ModelState);
 
             // Buscar al usuario por su email
-            var user = await _dataContext.Users.SingleOrDefaultAsync(u => u.Email == login.Email);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.PasswordHash))
+            var user = await _dataContext.Users.SingleOrDefaultAsync(u => u.Email == loginDto.Email);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
             {
                 return Unauthorized("Correo electrónico o contraseña incorrectos.");
             }
