@@ -10,5 +10,9 @@ namespace TallerIDWMBackend.Interfaces
     {
         Task<User> GetUserByIdAsync(long id);
         Task UpdateUserAsync(User user);
+        Task<User> GetUserByEmailAsync(string email);
+        Task<bool> IsEmailOrRutRegisteredAsync(string email, string rut);
+        Task AddUserAsync(User user);
+        Task SaveChangesAsync();
     }
 }
