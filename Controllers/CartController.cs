@@ -257,11 +257,22 @@ namespace TallerIDWMBackend.Controllers
                 {
                     return BadRequest(new { message = $"El producto con ID {cartItem.ProductId} no fue encontrado." });
                 }
+                // Verificar si hay suficiente stock para cada producto
+                var product = _dataContext.Products.First(p => p.Id == cartItem.ProductId);
+                if (product.StockQuantity < cartItem.Quantity)
+                {
+                    return BadRequest(new { message = $"No hay suficiente stock para el producto {product.Name}." });
+                }
+
+                // Asignar el producto y descontar el stock
+                cartItem.Product = product;
+                product.StockQuantity -= cartItem.Quantity;
+                await _dataContext.SaveChangesAsync();
             }
 
             // Calcular el total a pagar
             var total = cartItems.Sum(item => item.Product.Price * item.Quantity);
-
+            ClearCart();
             return Ok(new
             {
                 Items = cartItems.Select(item => new
