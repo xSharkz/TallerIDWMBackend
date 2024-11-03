@@ -16,7 +16,11 @@ Env.Load();
 // Swagger y Controllers
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        });
 
 // Conexión a la base de datos
 var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
@@ -30,6 +34,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<InvoiceService>(); 
 
 // Configuración JWT
 var key = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET_KEY")!);
