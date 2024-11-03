@@ -6,6 +6,7 @@ using System.Text;
 using TallerIDWMBackend.Data;
 using TallerIDWMBackend.Interfaces;
 using TallerIDWMBackend.Repository;
+using TallerIDWMBackend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +27,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<DataSeeder>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+
 // Configuración JWT
 var key = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET_KEY")!);
 
