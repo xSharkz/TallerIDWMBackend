@@ -224,7 +224,7 @@ namespace TallerIDWMBackend.Controllers
 
         // 5. Mostrar botón de pago (requiere inicio de sesión)
         [HttpGet("checkout")]
-        [Authorize]
+        [Authorize(Roles = "Customer")]
         public async Task<IActionResult> Checkout()
         {
             var cartCookie = Request.Cookies["cart"];
