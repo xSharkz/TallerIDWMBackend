@@ -11,8 +11,8 @@ using TallerIDWMBackend.Data;
 namespace TallerIDWMBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241012061119_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20241103001758_Migracion")]
+    partial class Migracion
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
