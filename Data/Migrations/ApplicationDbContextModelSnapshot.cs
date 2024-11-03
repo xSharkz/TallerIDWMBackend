@@ -211,13 +211,11 @@ namespace TallerIDWMBackend.Migrations
 
             modelBuilder.Entity("TallerIDWMBackend.Models.Order", b =>
                 {
-                    b.HasOne("TallerIDWMBackend.Models.User", "User")
+                    b.HasOne("TallerIDWMBackend.Models.User", null)
                         .WithMany("Orders")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TallerIDWMBackend.Models.OrderItem", b =>

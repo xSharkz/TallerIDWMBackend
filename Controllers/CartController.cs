@@ -82,7 +82,7 @@ namespace TallerIDWMBackend.Controllers
                 {
                     ProductId = product.Id,
                     Quantity = 1,
-                    SessionId = "your-session-id" // Cambia esto según cómo gestiones la sesión
+                    SessionId = "guest-id" 
                 });
             }
 
@@ -282,7 +282,7 @@ namespace TallerIDWMBackend.Controllers
                 return Unauthorized(new { message = $"Usuario no encontrado." });
             
             DateTime utcNow = DateTime.UtcNow;
-            TimeZoneInfo chileTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            TimeZoneInfo chileTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Santiago");
             // Convierte la hora UTC a la hora local de Chile
             DateTime orderDate = TimeZoneInfo.ConvertTimeFromUtc(utcNow, chileTimeZone);
 
@@ -311,7 +311,7 @@ namespace TallerIDWMBackend.Controllers
             ClearCart();
 
             // Enviar el PDF como archivo descargable
-            return File(pdfBytes, "application/pdf", $"Factura_Orden_{order.Id}.pdf");
+            return File(pdfBytes, "application/pdf", $"Factura_Orden_{order.Id}_IDWM.pdf");
         }
 
 
