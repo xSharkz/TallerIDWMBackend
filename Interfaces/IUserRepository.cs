@@ -11,7 +11,7 @@ namespace TallerIDWMBackend.Interfaces
         Task<bool> IsEmailOrRutRegisteredAsync(string email, string rut);
         Task AddUserAsync(User user);
         Task SaveChangesAsync();
-        Task<PaginatedResponse<User>> GetPaginatedUsersAsync(int page, int pageSize, string searchQuery);
+        Task<PaginatedResponseDto<User>> GetPaginatedUsersAsync(int page, int pageSize, string searchQuery);
         Task UpdateUserStatusAsync(long userId, bool isEnabled);
     }
 }

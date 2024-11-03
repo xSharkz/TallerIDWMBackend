@@ -49,7 +49,7 @@ namespace TallerIDWMBackend.Repository
             await _dataContext.SaveChangesAsync();
         }
 
-        public async Task<PaginatedResponse<User>> GetPaginatedUsersAsync(int page, int pageSize, string searchQuery)
+        public async Task<PaginatedResponseDto<User>> GetPaginatedUsersAsync(int page, int pageSize, string searchQuery)
         {
             var query = _dataContext.Users.AsQueryable();
 
@@ -66,7 +66,7 @@ namespace TallerIDWMBackend.Repository
                 .Take(pageSize)
                 .ToListAsync();
 
-            return new PaginatedResponse<User>
+            return new PaginatedResponseDto<User>
             {
                 Items = users,
                 TotalPages = totalPages,

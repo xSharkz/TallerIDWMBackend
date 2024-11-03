@@ -87,7 +87,7 @@ namespace TallerIDWMBackend.Controllers
                 IsEnabled = user.IsEnabled
             }).ToList();
 
-            return Ok(new PaginatedResponse<UserDto>
+            return Ok(new PaginatedResponseDto<UserDto>
             {
                 Items = userDtos,
                 TotalPages = paginatedUsers.TotalPages,
