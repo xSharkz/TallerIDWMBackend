@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace TallerIDWMBackend.DTOs.User
 {
-    public class PaginatedResponse<T>
+    public class PaginatedResponseDto<T>
     {
         public List<T> Items { get; set; } = new List<T>();
         public int TotalPages { get; set; }
