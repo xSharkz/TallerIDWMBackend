@@ -17,33 +17,30 @@ namespace TallerIDWMBackend.Repository
         {
             _dataContext = dataContext;
         }
-        public async Task<IEnumerable<Product>> GetPagedProductsAsync(string searchQuery, string type, string sortOrder, int pageNumber, int pageSize)
+        public async Task<IEnumerable<Product>> GetPagedProductsAsync(string searchQuery, string type, string sortOrder, int pageNumber, int pageSize, bool includeOutOfStock = false)
         {
-            // Filtrar productos con stock mayor que 0
-            var productsQuery = _dataContext.Products.Where(p => p.StockQuantity > 0).AsQueryable();
+            var productsQuery = _dataContext.Products.AsQueryable();
 
-            // Filtro de búsqueda por nombre del producto
+            // Filtrar productos con stock > 0 si no se incluye out of stock
+            if (!includeOutOfStock)
+            {
+                productsQuery = productsQuery.Where(p => p.StockQuantity > 0);
+            }
+
             if (!string.IsNullOrEmpty(searchQuery))
             {
                 productsQuery = productsQuery.Where(p => p.Name.Contains(searchQuery));
             }
 
-            // Filtrar por tipo de producto
             if (!string.IsNullOrEmpty(type))
             {
                 productsQuery = productsQuery.Where(p => p.Type == type);
             }
 
-            // Ordenar por precio ascendente o descendente
-            switch (sortOrder.ToLower())
-            {
-                case "desc":
-                    productsQuery = productsQuery.OrderByDescending(p => p.Price);
-                    break;
-                default:
-                    productsQuery = productsQuery.OrderBy(p => p.Price);
-                    break;
-            }
+            // Ordenamiento
+            productsQuery = sortOrder.ToLower() == "desc"
+                ? productsQuery.OrderByDescending(p => p.Price)
+                : productsQuery.OrderBy(p => p.Price);
 
             // Paginación
             return await productsQuery
@@ -52,9 +49,15 @@ namespace TallerIDWMBackend.Repository
                 .ToListAsync();
         }
 
-        public async Task<int> GetTotalProductsAsync(string searchQuery, string type)
+
+        public async Task<int> GetTotalProductsAsync(string searchQuery, string type, bool includeOutOfStock = false)
         {
-            var productsQuery = _dataContext.Products.Where(p => p.StockQuantity > 0).AsQueryable();
+            var productsQuery = _dataContext.Products.AsQueryable();
+
+            if (!includeOutOfStock)
+            {
+                productsQuery = productsQuery.Where(p => p.StockQuantity > 0);
+            }
 
             if (!string.IsNullOrEmpty(searchQuery))
             {

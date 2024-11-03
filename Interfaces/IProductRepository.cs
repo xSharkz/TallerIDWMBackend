@@ -8,8 +8,8 @@ namespace TallerIDWMBackend.Interfaces
 {
     public interface IProductRepository
     {
-        Task<IEnumerable<Product>> GetPagedProductsAsync(string searchQuery, string type, string sortOrder, int pageNumber, int pageSize);
-        Task<int> GetTotalProductsAsync(string searchQuery, string type);
+        Task<IEnumerable<Product>> GetPagedProductsAsync(string searchQuery, string type, string sortOrder, int pageNumber, int pageSize, bool includeOutOfStock = false);
+        Task<int> GetTotalProductsAsync(string searchQuery, string type, bool includeOutOfStock = false);
         Task<Product> GetProductByIdAsync(long id);
 
         Task<bool> ProductExistsAsync(string name, string type);

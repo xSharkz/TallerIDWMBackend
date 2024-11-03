@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TallerIDWMBackend.DTOs.Product;
 using TallerIDWMBackend.Interfaces;
@@ -21,19 +22,16 @@ namespace TallerIDWMBackend.Controllers
         }
 
         // GET: api/product
-        [HttpGet]
-        public async Task<IActionResult> GetProducts(
+        [HttpGet("available")]
+        public async Task<IActionResult> GetAvailableProducts(
             string searchQuery = "", 
             string type = "", 
             string sortOrder = "asc", 
             int pageNumber = 1, 
             int pageSize = 10)
         {
-            if (pageSize < 1 || pageSize > 100) pageSize = 10;
-            if (pageNumber < 1) pageNumber = 1;
-
-            var products = await _productRepository.GetPagedProductsAsync(searchQuery, type, sortOrder, pageNumber, pageSize);
-            var totalItems = await _productRepository.GetTotalProductsAsync(searchQuery, type);
+            var products = await _productRepository.GetPagedProductsAsync(searchQuery, type, sortOrder, pageNumber, pageSize, includeOutOfStock: false);
+            var totalItems = await _productRepository.GetTotalProductsAsync(searchQuery, type, includeOutOfStock: false);
 
             if (products == null || !products.Any())
             {
@@ -83,9 +81,45 @@ namespace TallerIDWMBackend.Controllers
             return Ok(productDto);
         }
 
+        [HttpGet("all")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllProductsForAdmin(
+            string searchQuery = "", 
+            string type = "", 
+            string sortOrder = "asc", 
+            int pageNumber = 1, 
+            int pageSize = 10)
+        {
+            var products = await _productRepository.GetPagedProductsAsync(searchQuery, type, sortOrder, pageNumber, pageSize, includeOutOfStock: true);
+            var totalItems = await _productRepository.GetTotalProductsAsync(searchQuery, type, includeOutOfStock: true);
 
-        // SOLO PARA ADMIN [ADMIN]
+            if (products == null || !products.Any())
+            {
+                return NotFound(new { message = "No se encontraron productos." });
+            }
+
+            var productDtos = products.Select(p => new ProductReadDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Type = p.Type,
+                Price = p.Price,
+                StockQuantity = p.StockQuantity,
+                ImageUrl = p.ImageUrl
+            });
+
+            return Ok(new
+            {
+                TotalItems = totalItems,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                Products = productDtos
+            });
+        }
+
+
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AddProduct([FromBody] ProductCreateUpdateDto productDto)
         {
             if (!ModelState.IsValid)
@@ -123,8 +157,8 @@ namespace TallerIDWMBackend.Controllers
             }
         }
 
-        // SOLO PARA ADMIN [ADMIN]
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateProduct(long id, [FromBody] ProductCreateUpdateDto productDto)
         {
             if (!ModelState.IsValid)
@@ -167,6 +201,7 @@ namespace TallerIDWMBackend.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteProduct(long id)
         {
             try
