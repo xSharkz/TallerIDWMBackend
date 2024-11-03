@@ -20,12 +20,14 @@ namespace TallerIDWMBackend.Repository
 
         public async Task<IEnumerable<Order>> GetAllOrdersAsync(int pageNumber, int pageSize, string? searchTerm = null, string? sortOrder = null)
         {
-            var query = _context.Orders.Include(o => o.User).AsQueryable();
+            var query = _context.Orders.Include(o => o.OrderItems).AsQueryable();
 
-            // Filtrar por nombre del cliente
             if (!string.IsNullOrEmpty(searchTerm))
             {
-                query = query.Where(o => o.User.Name.Contains(searchTerm));
+                var userQuery = _context.Users
+                    .Where(u => u.Name.Contains(searchTerm))
+                    .Select(u => u.Id);
+                query = query.Where(o => userQuery.Contains(o.UserId));
             }
 
             // Ordenar por fecha
@@ -42,11 +44,14 @@ namespace TallerIDWMBackend.Repository
 
         public async Task<int> GetTotalOrdersCountAsync(string? searchTerm = null)
         {
-            var query = _context.Orders.Include(o => o.User).AsQueryable();
+            var query = _context.Orders.AsQueryable();
 
             if (!string.IsNullOrEmpty(searchTerm))
             {
-                query = query.Where(o => o.User.Name.Contains(searchTerm));
+                var userQuery = _context.Users
+                    .Where(u => u.Name.Contains(searchTerm))
+                    .Select(u => u.Id);
+                query = query.Where(o => userQuery.Contains(o.UserId));
             }
 
             return await query.CountAsync();
