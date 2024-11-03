@@ -65,6 +65,9 @@ namespace TallerIDWMBackend.Controllers
             {
                 return Unauthorized("Correo electrónico o contraseña incorrectos.");
             }
+            if (user.IsEnabled == false){
+                return Unauthorized("La cuenta ingresada fue eliminada del sistema anteriormente.");
+            }
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY");
