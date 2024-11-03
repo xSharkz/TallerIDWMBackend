@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using TallerIDWMBackend.DTOs.Product;
 using TallerIDWMBackend.Interfaces;
+using TallerIDWMBackend.Models;
 
 namespace TallerIDWMBackend.Controllers
 {
@@ -27,16 +29,8 @@ namespace TallerIDWMBackend.Controllers
             int pageNumber = 1, 
             int pageSize = 10)
         {
-            // Limitar los valores de pageSize y pageNumber
-            if (pageSize < 1 || pageSize > 100)
-            {
-                pageSize = 10; // Límite predeterminado
-            }
-
-            if (pageNumber < 1)
-            {
-                pageNumber = 1;
-            }
+            if (pageSize < 1 || pageSize > 100) pageSize = 10;
+            if (pageNumber < 1) pageNumber = 1;
 
             var products = await _productRepository.GetPagedProductsAsync(searchQuery, type, sortOrder, pageNumber, pageSize);
             var totalItems = await _productRepository.GetTotalProductsAsync(searchQuery, type);
@@ -46,22 +40,25 @@ namespace TallerIDWMBackend.Controllers
                 return NotFound(new { message = "No se encontraron productos." });
             }
 
+            var productDtos = products.Select(p => new ProductReadDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Type = p.Type,
+                Price = p.Price,
+                StockQuantity = p.StockQuantity,
+                ImageUrl = p.ImageUrl
+            });
+
             return Ok(new
             {
                 TotalItems = totalItems,
                 PageNumber = pageNumber,
                 PageSize = pageSize,
-                Products = products.Select(p => new
-                {
-                    p.Id,
-                    p.Name,
-                    p.Type,
-                    p.Price,
-                    p.StockQuantity,
-                    p.ImageUrl
-                })
+                Products = productDtos
             });
         }
+
 
         // GET: api/product/{id}
         [HttpGet("{id}")]
@@ -73,15 +70,116 @@ namespace TallerIDWMBackend.Controllers
                 return NotFound(new { message = "Producto no encontrado." });
             }
 
-            return Ok(new
+            var productDto = new ProductReadDto
             {
-                product.Id,
-                product.Name,
-                product.Type,
-                product.Price,
-                product.StockQuantity,
-                product.ImageUrl
-            });
+                Id = product.Id,
+                Name = product.Name,
+                Type = product.Type,
+                Price = product.Price,
+                StockQuantity = product.StockQuantity,
+                ImageUrl = product.ImageUrl
+            };
+
+            return Ok(productDto);
         }
+
+
+        // SOLO PARA ADMIN [ADMIN]
+        [HttpPost]
+        public async Task<IActionResult> AddProduct([FromBody] ProductCreateUpdateDto productDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var product = new Product
+            {
+                Name = productDto.Name,
+                Type = productDto.Type,
+                Price = productDto.Price,
+                StockQuantity = productDto.StockQuantity,
+                ImageUrl = productDto.ImageUrl,
+                PublicId = productDto.PublicId
+            };
+
+            try
+            {
+                var newProduct = await _productRepository.AddProductAsync(product);
+                var newProductDto = new ProductReadDto
+                {
+                    Id = newProduct.Id,
+                    Name = newProduct.Name,
+                    Type = newProduct.Type,
+                    Price = newProduct.Price,
+                    StockQuantity = newProduct.StockQuantity,
+                    ImageUrl = newProduct.ImageUrl
+                };
+                return CreatedAtAction(nameof(GetProductById), new { id = newProduct.Id }, newProductDto);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+        }
+
+        // SOLO PARA ADMIN [ADMIN]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProduct(long id, [FromBody] ProductCreateUpdateDto productDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var updatedProduct = new Product
+            {
+                Name = productDto.Name,
+                Type = productDto.Type,
+                Price = productDto.Price,
+                StockQuantity = productDto.StockQuantity,
+                ImageUrl = productDto.ImageUrl,
+                PublicId = productDto.PublicId
+            };
+
+            try
+            {
+                var product = await _productRepository.UpdateProductAsync(id, updatedProduct);
+                var updatedProductDto = new ProductReadDto
+                {
+                    Id = product.Id,
+                    Name = product.Name,
+                    Type = product.Type,
+                    Price = product.Price,
+                    StockQuantity = product.StockQuantity,
+                    ImageUrl = product.ImageUrl
+                };
+                return Ok(updatedProductDto);
+            }
+            catch (NullReferenceException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(long id)
+        {
+            try
+            {
+                await _productRepository.DeleteProductAsync(id);
+                return NoContent();
+            }
+            catch (NullReferenceException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+
     }
 }
