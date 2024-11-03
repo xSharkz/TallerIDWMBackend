@@ -128,5 +128,33 @@ namespace TallerIDWMBackend.Controllers
 
             return Ok(new { message = "Sesión cerrada correctamente." });
         }
+
+        [HttpDelete("delete-account")]
+        [Authorize]
+        public async Task<IActionResult> DeleteAccount()
+        {
+            // Obtener el ID del usuario desde el contexto
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                return BadRequest("No se pudo encontrar la información del usuario.");
+            }
+
+            long userId = long.Parse(userIdClaim.Value);
+
+            // Obtener el usuario a eliminar
+            var user = await _userRepository.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                return NotFound("Usuario no encontrado.");
+            }
+
+            // Deshabilitar el usuario
+            user.IsEnabled = false;
+            await _userRepository.UpdateUserAsync(user);
+
+            Logout();
+            return Ok("Cuenta eliminada exitosamente.");
+        }
     }
 }
