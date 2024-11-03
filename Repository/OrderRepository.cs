@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,7 +29,6 @@ namespace TallerIDWMBackend.Repository
                 query = query.Where(o => userQuery.Contains(o.UserId));
             }
 
-            // Ordenar por fecha
             query = sortOrder switch
             {
                 "date_desc" => query.OrderByDescending(o => o.OrderDate),
@@ -55,6 +53,14 @@ namespace TallerIDWMBackend.Repository
             }
 
             return await query.CountAsync();
+        }
+
+        public async Task<IEnumerable<Order>> GetOrdersByUserIdAsync(long userId)
+        {
+            return await _context.Orders
+                .Include(o => o.OrderItems)
+                .Where(o => o.UserId == userId)
+                .ToListAsync();
         }
     }
 }

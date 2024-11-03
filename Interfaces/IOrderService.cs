@@ -11,5 +11,6 @@ namespace TallerIDWMBackend.Interfaces
     public interface IOrderService
     {
         Task<PaginatedResponseDto<OrderDto>> GetOrdersAsync(int pageNumber, int pageSize, string? searchTerm = null, string? sortOrder = null);
+        Task<PaginatedResponseDto<OrderDto>> GetOrdersByUserIdAsync(long userId, int pageNumber, int pageSize);
     }
 }
