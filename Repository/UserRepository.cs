@@ -1,11 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using TallerIDWMBackend.Data;
+using TallerIDWMBackend.DTOs.User;
 using TallerIDWMBackend.Interfaces;
 using TallerIDWMBackend.Models;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace TallerIDWMBackend.Repository
 {
@@ -42,11 +41,48 @@ namespace TallerIDWMBackend.Repository
         public async Task AddUserAsync(User user)
         {
             _dataContext.Users.Add(user);
+            await _dataContext.SaveChangesAsync();
         }
 
         public async Task SaveChangesAsync()
         {
             await _dataContext.SaveChangesAsync();
-        }   
+        }
+
+        public async Task<PaginatedResponse<User>> GetPaginatedUsersAsync(int page, int pageSize, string searchQuery)
+        {
+            var query = _dataContext.Users.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                query = query.Where(u => u.Name.Contains(searchQuery) || u.Email.Contains(searchQuery));
+            }
+
+            int totalUsers = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalUsers / (double)pageSize);
+
+            var users = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PaginatedResponse<User>
+            {
+                Items = users,
+                TotalPages = totalPages,
+                CurrentPage = page
+            };
+        }
+
+        public async Task UpdateUserStatusAsync(long userId, bool isEnabled)
+        {
+            var user = await _dataContext.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.IsEnabled = isEnabled;
+                _dataContext.Users.Update(user);
+                await _dataContext.SaveChangesAsync();
+            }
+        }
     }
 }

@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using TallerIDWMBackend.DTOs.User;
 using TallerIDWMBackend.Models;
 
 namespace TallerIDWMBackend.Interfaces
@@ -14,5 +11,7 @@ namespace TallerIDWMBackend.Interfaces
         Task<bool> IsEmailOrRutRegisteredAsync(string email, string rut);
         Task AddUserAsync(User user);
         Task SaveChangesAsync();
+        Task<PaginatedResponse<User>> GetPaginatedUsersAsync(int page, int pageSize, string searchQuery);
+        Task UpdateUserStatusAsync(long userId, bool isEnabled);
     }
 }

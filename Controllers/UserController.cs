@@ -70,5 +70,45 @@ namespace TallerIDWMBackend.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             return userIdClaim != null ? long.Parse(userIdClaim.Value) : 0;
         }
+
+        [HttpGet("customers")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetCustomers([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string searchQuery = "")
+        {
+            var paginatedUsers = await _userRepository.GetPaginatedUsersAsync(page, pageSize, searchQuery);
+
+            var userDtos = paginatedUsers.Items.Select(user => new UserDto
+            {
+                Id = user.Id,
+                Rut = user.Rut,
+                Name = user.Name,
+                Email = user.Email,
+                Gender = user.Gender,
+                IsEnabled = user.IsEnabled
+            }).ToList();
+
+            return Ok(new PaginatedResponse<UserDto>
+            {
+                Items = userDtos,
+                TotalPages = paginatedUsers.TotalPages,
+                CurrentPage = paginatedUsers.CurrentPage
+            });
+        }
+
+        [HttpPut("update-status")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateUserStatus([FromBody] UpdateUserStatusDto updateUserStatusDto)
+        {
+            var user = await _userRepository.GetUserByIdAsync(updateUserStatusDto.UserId);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "Usuario no encontrado." });
+            }
+
+            await _userRepository.UpdateUserStatusAsync(updateUserStatusDto.UserId, updateUserStatusDto.IsEnabled);
+            var status = updateUserStatusDto.IsEnabled ? "habilitada" : "deshabilitada";
+            return Ok(new { message = $"Cuenta de usuario {status} exitosamente." });
+        }
     }
 }
