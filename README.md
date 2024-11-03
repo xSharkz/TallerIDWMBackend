@@ -8,3 +8,5 @@ Crear appsettings.json con la configuracion de Cloudinary
     "ApiKey":"",
     "ApiSecret":""
   }
+
+#Ocupe la libreria iTextSharp (y su dependencia BouncyCastle), consultar con el ayudante#

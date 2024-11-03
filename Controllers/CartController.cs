@@ -8,6 +8,9 @@ using TallerIDWMBackend.Models;
 using TallerIDWMBackend.Data;
 using Microsoft.AspNetCore.Authorization;
 using Newtonsoft.Json;
+using TallerIDWMBackend.Services;
+using TallerIDWMBackend.DTOs.Order;
+using System.Security.Claims;
 
 namespace TallerIDWMBackend.Controllers
 {
@@ -16,10 +19,12 @@ namespace TallerIDWMBackend.Controllers
     public class CartController : ControllerBase
     {
         private readonly ApplicationDbContext _dataContext;
+        private readonly InvoiceService _invoiceService;
 
-        public CartController(ApplicationDbContext dataContext)
+        public CartController(ApplicationDbContext dataContext, InvoiceService invoiceService)
         {
             _dataContext = dataContext;
+            _invoiceService = invoiceService;
         }
 
         // 1. Agregar un producto al carrito
@@ -223,18 +228,17 @@ namespace TallerIDWMBackend.Controllers
 
 
         // 5. Mostrar botón de pago (requiere inicio de sesión)
-        [HttpGet("checkout")]
+        [HttpPost("checkout")]
         [Authorize(Roles = "Customer")]
-        public async Task<IActionResult> Checkout()
+        public async Task<IActionResult> Checkout([FromBody] DeliveryAddressDto address)
         {
+            // Verificar si el carrito existe y contiene productos
             var cartCookie = Request.Cookies["cart"];
-            
             if (string.IsNullOrWhiteSpace(cartCookie))
             {
                 return BadRequest(new { message = "El carrito está vacío." });
             }
 
-            // Deserializar la cookie que contiene el carrito
             var cartItems = JsonConvert.DeserializeObject<List<CartItem>>(cartCookie);
             if (cartItems == null || !cartItems.Any())
             {
@@ -243,13 +247,11 @@ namespace TallerIDWMBackend.Controllers
 
             // Obtener los IDs de los productos en el carrito
             var productIds = cartItems.Select(ci => ci.ProductId).ToList();
-
-            // Cargar los productos desde la base de datos
             var products = await _dataContext.Products
                 .Where(p => productIds.Contains(p.Id))
                 .ToListAsync();
 
-            // Asignar los productos correspondientes a los CartItems
+            // Procesar stock y calcular total
             foreach (var cartItem in cartItems)
             {
                 cartItem.Product = products.FirstOrDefault(p => p.Id == cartItem.ProductId);
@@ -257,34 +259,61 @@ namespace TallerIDWMBackend.Controllers
                 {
                     return BadRequest(new { message = $"El producto con ID {cartItem.ProductId} no fue encontrado." });
                 }
-                // Verificar si hay suficiente stock para cada producto
-                var product = _dataContext.Products.First(p => p.Id == cartItem.ProductId);
-                if (product.StockQuantity < cartItem.Quantity)
+                if (cartItem.Product.StockQuantity < cartItem.Quantity)
                 {
-                    return BadRequest(new { message = $"No hay suficiente stock para el producto {product.Name}." });
+                    return BadRequest(new { message = $"No hay suficiente stock para el producto {cartItem.Product.Name}." });
                 }
-
-                // Asignar el producto y descontar el stock
-                cartItem.Product = product;
-                product.StockQuantity -= cartItem.Quantity;
-                await _dataContext.SaveChangesAsync();
+                cartItem.Product.StockQuantity -= cartItem.Quantity;
             }
+            
+            var totalAmount = cartItems.Sum(item => item.Product.Price * item.Quantity);
+            
+            var claimsIdentity = HttpContext.User.Identity as ClaimsIdentity;
+            var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
 
-            // Calcular el total a pagar
-            var total = cartItems.Sum(item => item.Product.Price * item.Quantity);
-            ClearCart();
-            return Ok(new
+            if (userIdClaim == null) 
+                return Unauthorized(new { message = "Usuario no autenticado." });
+
+            if (!long.TryParse(userIdClaim.Value, out long userId))
+                return Unauthorized(new { message = "ID de usuario inválido en el token." });
+
+            var user = await _dataContext.Users.FindAsync(userId);
+            if (user == null) 
+                return Unauthorized(new { message = $"Usuario no encontrado." });
+            
+            DateTime utcNow = DateTime.UtcNow;
+            TimeZoneInfo chileTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            // Convierte la hora UTC a la hora local de Chile
+            DateTime orderDate = TimeZoneInfo.ConvertTimeFromUtc(utcNow, chileTimeZone);
+
+            // Crear la orden
+            var order = new Order
             {
-                Items = cartItems.Select(item => new
+                UserId = user.Id,
+                OrderDate = orderDate,
+                TotalAmount = totalAmount,
+                DeliveryAddress = $"{address.Country}, {address.City}, {address.Commune}, {address.Street}",
+                OrderItems = cartItems.Select(item => new OrderItem
                 {
-                    ProductName = item.Product.Name,
-                    ProductPrice = item.Product.Price,
-                    item.Quantity,
-                    Subtotal = item.Product.Price * item.Quantity
-                }),
-                Total = total
-            });
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.Product.Price
+                }).ToList()
+            };
+
+            _dataContext.Orders.Add(order);
+            await _dataContext.SaveChangesAsync();
+
+            // Generar la factura en PDF
+            var pdfBytes = _invoiceService.GenerateInvoicePdf(order, cartItems);
+
+            // Limpiar el carrito
+            ClearCart();
+
+            // Enviar el PDF como archivo descargable
+            return File(pdfBytes, "application/pdf", $"Factura_Orden_{order.Id}.pdf");
         }
+
 
         [HttpPost("clear-cart")]
         public IActionResult ClearCart()
