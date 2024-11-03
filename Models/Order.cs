@@ -23,8 +23,6 @@ namespace TallerIDWMBackend.Models
         [Required]
         [StringLength(255)]
         public string DeliveryAddress { get; set; } = null!; // Dirección de entrega.
-
-        public User User { get; set; } = null!;
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     }
 }
