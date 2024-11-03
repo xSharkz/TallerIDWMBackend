@@ -80,5 +80,61 @@ namespace TallerIDWMBackend.Repository
 
             return product;
         }
+
+        public async Task<bool> ProductExistsAsync(string name, string type)
+        {
+            return await _dataContext.Products.AnyAsync(p => p.Name == name && p.Type == type);
+        }
+
+        public async Task<Product> AddProductAsync(Product product)
+        {
+            if (await ProductExistsAsync(product.Name, product.Type))
+            {
+                throw new InvalidOperationException("Ya existe un producto con el mismo nombre y tipo.");
+            }
+
+            _dataContext.Products.Add(product);
+            await _dataContext.SaveChangesAsync();
+            return product;
+        }
+
+        public async Task<Product> UpdateProductAsync(long id, Product updatedProduct)
+        {
+            var existingProduct = await GetProductByIdAsync(id);
+            if (existingProduct == null)
+            {
+                throw new NullReferenceException($"Producto con ID {id} no encontrado.");
+            }
+
+            if (await ProductExistsAsync(updatedProduct.Name, updatedProduct.Type) &&
+                (existingProduct.Name != updatedProduct.Name || existingProduct.Type != updatedProduct.Type))
+            {
+                throw new InvalidOperationException("Ya existe otro producto con el mismo nombre y tipo.");
+            }
+
+            existingProduct.Name = updatedProduct.Name;
+            existingProduct.Type = updatedProduct.Type;
+            existingProduct.Price = updatedProduct.Price;
+            existingProduct.StockQuantity = updatedProduct.StockQuantity;
+            existingProduct.ImageUrl = updatedProduct.ImageUrl;
+            existingProduct.PublicId = updatedProduct.PublicId;
+
+            _dataContext.Products.Update(existingProduct);
+            await _dataContext.SaveChangesAsync();
+            return existingProduct;
+        }
+
+        public async Task DeleteProductAsync(long id)
+        {
+            var product = await GetProductByIdAsync(id);
+            if (product == null)
+            {
+                throw new NullReferenceException($"Producto con ID {id} no encontrado.");
+            }
+
+            _dataContext.Products.Remove(product);
+            await _dataContext.SaveChangesAsync();
+        }
+
     }
 }
