@@ -1,0 +1,954 @@
+{
+	"info": {
+		"_postman_id": "c69651a4-f1e8-4be1-9db1-f1a9bf83b0ec",
+		"name": "TallerIDWMBackend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "33696582"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "email",
+									"value": "admin@idwm.cl",
+									"description": "Email del Usuario",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "P4ssw0rd",
+									"description": "Contraseña del Usuario",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/api/Auth/login",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Array de géneros disponibles\r",
+									"const generos = [\"Masculino\", \"Femenino\", \"Prefiero no decirlo\", \"Otro\"];\r",
+									"\r",
+									"// Selecciona uno aleatoriamente\r",
+									"const generoAleatorio = generos[Math.floor(Math.random() * generos.length)];\r",
+									"\r",
+									"// Guarda el valor en una variable de entorno de Postman\r",
+									"pm.environment.set(\"generoAleatorio\", generoAleatorio);\r",
+									"\r",
+									"// Generar un número aleatorio de años a restar entre 1 y 5\r",
+									"let randomYears = Math.floor(Math.random() * 5) + 1;  // Ejemplo: entre 1 y 5 años\r",
+									"\r",
+									"// Obtener la fecha actual y restar el número aleatorio de años\r",
+									"let pastDate = new Date();\r",
+									"pastDate.setFullYear(pastDate.getFullYear() - randomYears);\r",
+									"\r",
+									"// Guardar la fecha pasada en la variable de entorno\r",
+									"pm.environment.set(\"fechaNacimiento\", pastDate.toISOString());\r",
+									"\r",
+									"// Imprimir la fecha en la consola\r",
+									"console.log(\"Fecha generada (\" + randomYears + \" años atrás): \" + pastDate.toISOString());\r",
+									"\r",
+									"// Función para generar una contraseña aleatoria de 8 a 20 caracteres\r",
+									"function generarContraseña(longitud) {\r",
+									"    const caracteres = \"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()\";\r",
+									"    let contraseña = \"\";\r",
+									"    for (let i = 0; i < longitud; i++) {\r",
+									"        contraseña += caracteres.charAt(Math.floor(Math.random() * caracteres.length));\r",
+									"    }\r",
+									"    return contraseña;\r",
+									"}\r",
+									"\r",
+									"// Generar una contraseña aleatoria de 8 a 20 caracteres\r",
+									"const contraseñaAleatoria = generarContraseña(Math.floor(Math.random() * 13) + 8);\r",
+									"\r",
+									"// Guardar la contraseña en variables de entorno\r",
+									"pm.environment.set(\"contraseñaAleatoria\", contraseñaAleatoria);\r",
+									"pm.environment.set(\"confirmarContraseña\", contraseñaAleatoria);\r",
+									"\r",
+									"console.log(\"Fecha generada: \" + pm.environment.get(\"fechaNacimiento\"));\r",
+									"console.log(\"Genero generado: \" + pm.environment.get(\"generoAleatorio\"));\r",
+									"console.log(\"Contraseña generada: \" + pm.environment.get(\"contraseñaAleatoria\"));\r",
+									"console.log(\"Confirmar contraseña generada: \" + pm.environment.get(\"confirmarContraseña\"));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "rut",
+									"value": "12.345.678-9",
+									"description": "Rut del Usuario",
+									"type": "text"
+								},
+								{
+									"key": "name",
+									"value": "{{$randomFullName}}",
+									"description": "Nombre del Usuario",
+									"type": "text"
+								},
+								{
+									"key": "birthDate",
+									"value": "{{fechaNacimiento}}",
+									"description": "Fecha de Nacimiento del Usuario aaaa/mm/dd",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "{{$randomEmail}}",
+									"description": "Email del Usuario",
+									"type": "text"
+								},
+								{
+									"key": "gender",
+									"value": "{{generoAleatorio}}",
+									"description": "Género del Usuario",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{contraseñaAleatoria}}",
+									"description": "Contraseña del Usuario",
+									"type": "text"
+								},
+								{
+									"key": "confirmPassword",
+									"value": "{{confirmarContraseña}}",
+									"description": "Confirmación de Contraseña del Usuario",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/api/Auth/register",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout (Auth)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/Auth/logout",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Cuenta (Auth)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/Auth/delete-account",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Auth",
+								"delete-account"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Cart",
+			"item": [
+				{
+					"name": "Ver Carrito",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/Cart/view",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Cart",
+								"view"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Añadir Producto",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/Cart/add-to-cart/{{id}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Cart",
+								"add-to-cart",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar Cantidad del Producto",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "newQuantity",
+									"value": "{{$randomInt}}",
+									"description": "Nueva Cantidad a Adquirir del Producto",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/api/Cart/update-quantity/{{id}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Cart",
+								"update-quantity",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Producto",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/Cart/remove-item/{{id}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Cart",
+								"remove-item",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Pagar Carrito (Auth)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "country",
+									"value": "{{$randomCountry}}",
+									"description": "Pais de la Dirección",
+									"type": "text"
+								},
+								{
+									"key": "city",
+									"value": "{{$randomCity}}",
+									"description": "Ciudad de la Dirección",
+									"type": "text"
+								},
+								{
+									"key": "commune",
+									"value": "{{$randomCity}}",
+									"description": "Comuna de la Dirección",
+									"type": "text"
+								},
+								{
+									"key": "street",
+									"value": "{{$randomStreetAddress}}",
+									"description": "Calle de la Dirección",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/api/Cart/checkout",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Cart",
+								"checkout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Order",
+			"item": [
+				{
+					"name": "Ver Ordenes (Auth)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/Order/orders?pageNumber=1&pageSize=10",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Order",
+								"orders"
+							],
+							"query": [
+								{
+									"key": "pageNumber",
+									"value": "1",
+									"description": "Pagina a Mostrar"
+								},
+								{
+									"key": "pageSize",
+									"value": "10",
+									"description": "Cantidad de Ordenes a Mostrar"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Ordenes (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/Order/?pageNumber=1&pageSize=10&searchTerm&sortOrder",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Order",
+								""
+							],
+							"query": [
+								{
+									"key": "pageNumber",
+									"value": "1",
+									"description": "Pagina a Mostrar"
+								},
+								{
+									"key": "pageSize",
+									"value": "10",
+									"description": "Cantidad de Ordenes a Mostrar"
+								},
+								{
+									"key": "searchTerm",
+									"value": null,
+									"description": "Nombre del Usuario a Buscar la Orden"
+								},
+								{
+									"key": "sortOrder",
+									"value": null,
+									"description": "Orden de las Fechas de las Ordenes a Buscar"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User",
+			"item": [
+				{
+					"name": "Editar Perfil (Auth)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Array de géneros disponibles\r",
+									"const generos = [\"Masculino\", \"Femenino\", \"Prefiero no decirlo\", \"Otro\"];\r",
+									"\r",
+									"// Selecciona uno aleatoriamente\r",
+									"const generoAleatorio = generos[Math.floor(Math.random() * generos.length)];\r",
+									"\r",
+									"// Guarda el valor en una variable de entorno de Postman\r",
+									"pm.environment.set(\"generoAleatorio\", generoAleatorio);\r",
+									"\r",
+									"// Generar un número aleatorio de años a restar entre 1 y 5\r",
+									"let randomYears = Math.floor(Math.random() * 5) + 1;  // Ejemplo: entre 1 y 5 años\r",
+									"\r",
+									"// Obtener la fecha actual y restar el número aleatorio de años\r",
+									"let pastDate = new Date();\r",
+									"pastDate.setFullYear(pastDate.getFullYear() - randomYears);\r",
+									"\r",
+									"// Guardar la fecha pasada en la variable de entorno\r",
+									"pm.environment.set(\"fechaNacimiento\", pastDate.toISOString());"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "{{$randomFullName}}",
+									"description": "Nuevo Nombre del Usuario (opcional)",
+									"type": "text"
+								},
+								{
+									"key": "birthDate",
+									"value": "{{fechaNacimiento}}",
+									"description": "Nueva Fecha de Nacimiento del Usuario (opcional)",
+									"type": "text"
+								},
+								{
+									"key": "gender",
+									"value": "{{generoAleatorio}}",
+									"description": "Nuevo Género del Usuario (opcional)",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/api/User/edit-profile",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"User",
+								"edit-profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cambiar Contraseña (Auth)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"\r",
+									"\r",
+									"// Función para generar una contraseña aleatoria de 8 a 20 caracteres\r",
+									"function generarContraseña(longitud) {\r",
+									"    const caracteres = \"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()\";\r",
+									"    let contraseña = \"\";\r",
+									"    for (let i = 0; i < longitud; i++) {\r",
+									"        contraseña += caracteres.charAt(Math.floor(Math.random() * caracteres.length));\r",
+									"    }\r",
+									"    return contraseña;\r",
+									"}\r",
+									"\r",
+									"// Generar una contraseña aleatoria de 8 a 20 caracteres\r",
+									"const contraseñaAleatoria = generarContraseña(Math.floor(Math.random() * 13) + 8);\r",
+									"\r",
+									"// Guardar la contraseña en variables de entorno\r",
+									"pm.environment.set(\"contraseñaAleatoria\", contraseñaAleatoria);\r",
+									"pm.environment.set(\"confirmarContraseña\", contraseñaAleatoria);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "currentPassword",
+									"value": "",
+									"description": "Contraseña Actual del Usuario",
+									"type": "text"
+								},
+								{
+									"key": "newPassword",
+									"value": "{{contraseñaAleatoria}}",
+									"description": "Contraseña Nueva del Usuario",
+									"type": "text"
+								},
+								{
+									"key": "confirmPassword",
+									"value": "{{confirmarContraseña}}",
+									"description": "Confirmación de Contraseña del Usuario",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/api/User/change-password",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"User",
+								"change-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Clientes (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/User/customers?page=1&pageSize=10&searchQuery=",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"User",
+								"customers"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Pagina a Mostrar"
+								},
+								{
+									"key": "pageSize",
+									"value": "10",
+									"description": "Cantidad de Usuarios a Mostrar"
+								},
+								{
+									"key": "searchQuery",
+									"value": "",
+									"description": "Nombre del Usuario a Buscar"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar Usuario (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "userId",
+									"value": "2",
+									"description": "Id del Usuario a Actualizar",
+									"type": "text"
+								},
+								{
+									"key": "isEnabled",
+									"value": "false",
+									"description": "Estado del Usuario a Actualizar",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/api/User/update-status",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"User",
+								"update-status"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Product",
+			"item": [
+				{
+					"name": "Ver Productos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/Product/available?searchQuery=&type=&sortOrder=asc&pageNumber=1&pageSize=10",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Product",
+								"available"
+							],
+							"query": [
+								{
+									"key": "searchQuery",
+									"value": "",
+									"description": "Nombre del Producto a Buscar"
+								},
+								{
+									"key": "type",
+									"value": "",
+									"description": "Tipo del Producto a Buscar"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc",
+									"description": "Orden de los Productos a Buscar"
+								},
+								{
+									"key": "pageNumber",
+									"value": "1",
+									"description": "Pagina a Mostrar"
+								},
+								{
+									"key": "pageSize",
+									"value": "10",
+									"description": "Cantidad de Usuarios a Mostrar"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Productos por Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/Product/{{id}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Product",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Productos (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/Product/all?searchQuery&type&sortOrder=asc&pageNumber=1&pageSize=10",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Product",
+								"all"
+							],
+							"query": [
+								{
+									"key": "searchQuery",
+									"value": null,
+									"description": "Nombre del Producto a Buscar"
+								},
+								{
+									"key": "type",
+									"value": null,
+									"description": "Tipo del Producto a Buscar"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc",
+									"description": "Orden de los Productos a Buscar"
+								},
+								{
+									"key": "pageNumber",
+									"value": "1",
+									"description": "Pagina a Mostrar"
+								},
+								{
+									"key": "pageSize",
+									"value": "10",
+									"description": "Cantidad de Productos a Mostrar"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Añadir Producto (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "{{$randomProductName}}",
+									"description": "Nombre del Producto a Añadir",
+									"type": "text"
+								},
+								{
+									"key": "type",
+									"value": "{{$randomProduct}}",
+									"description": "Tipo del Producto a Añadir",
+									"type": "text"
+								},
+								{
+									"key": "price",
+									"value": "{{$randomInt}}",
+									"description": "Precio del Producto a Añadir",
+									"type": "text"
+								},
+								{
+									"key": "stockQuantity",
+									"value": "{{$randomInt}}",
+									"description": "Stock del Producto a Añadir",
+									"type": "text"
+								},
+								{
+									"key": "file",
+									"description": "Imagen del Producto",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/api/Product",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Product"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar Producto (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "{{$randomProductName}}",
+									"description": "Nombre del Producto a Añadir",
+									"type": "text"
+								},
+								{
+									"key": "type",
+									"value": "{{$randomProduct}}",
+									"description": "Tipo del Producto a Añadir",
+									"type": "text"
+								},
+								{
+									"key": "price",
+									"value": "{{$randomInt}}",
+									"description": "Precio del Producto a Añadir",
+									"type": "text"
+								},
+								{
+									"key": "stockQuantity",
+									"value": "{{$randomInt}}",
+									"description": "Stock del Producto a Añadir",
+									"type": "text"
+								},
+								{
+									"key": "file",
+									"description": "Imagen del Producto a Añadir",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/api/Product/{{id}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Product",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Producto (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/Product/{{id}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"Product",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "domain",
+			"value": "http://localhost:5220",
+			"type": "string"
+		},
+		{
+			"key": "id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "generoAleatorio",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "contraseñaAleatoria",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "confirmarContraseña",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "fechaNacimiento",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
