@@ -15,8 +15,6 @@ namespace TallerIDWMBackend.Data
 
         public DbSet<Product> Products { get; set;}
 
-        public DbSet<Post> Posts { get; set;}
-
         public DbSet<CartItem> CartItems { get; set;}
 
         public DbSet<Order> Orders { get; set;}

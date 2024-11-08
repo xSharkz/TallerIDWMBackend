@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using TallerIDWMBackend.Data;
+using TallerIDWMBackend.Helpers;
 using TallerIDWMBackend.Interfaces;
 using TallerIDWMBackend.Repository;
 using TallerIDWMBackend.Services;
@@ -33,6 +34,7 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 builder.Services.AddScoped<IPhotoService, PhotoService>();
 builder.Services.AddScoped<InvoiceService>(); 
 
@@ -81,7 +83,6 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var seeder = services.GetRequiredService<DataSeeder>();
     await seeder.SeedProductsAsync();
-    await seeder.SeedPostsAsync();
     await seeder.SeedAdminUserAsync();
 }
 
