@@ -175,7 +175,7 @@ namespace TallerIDWMBackend.Controllers
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateProduct(long id, [FromBody] ProductCreateUpdateDto productDto, IFormFile file)
+        public async Task<IActionResult> UpdateProduct(long id, [FromForm] ProductCreateUpdateDto productDto)
         {
             if (!ModelState.IsValid)
             {
@@ -189,7 +189,7 @@ namespace TallerIDWMBackend.Controllers
             }
 
             ImageUploadResult uploadResult = null;
-            if (file != null)
+            if (productDto.File != null)
             {
                 // Eliminar la foto anterior si se proporciona una nueva
                 if (!string.IsNullOrEmpty(productToUpdate.PublicId))
@@ -197,7 +197,7 @@ namespace TallerIDWMBackend.Controllers
                     await _photoService.DeletePhotoAsync(productToUpdate.PublicId);
                 }
 
-                uploadResult = await _photoService.AddPhotoAsync(file);
+                uploadResult = await _photoService.AddPhotoAsync(productDto.File);
                 if (uploadResult.Error != null)
                 {
                     return BadRequest(new { message = "Error al subir la imagen", error = uploadResult.Error });
