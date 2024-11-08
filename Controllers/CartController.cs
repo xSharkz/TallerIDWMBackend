@@ -64,6 +64,7 @@ namespace TallerIDWMBackend.Controllers
                 catch (JsonSerializationException)
                 {
                     // Manejar el caso en que la cookie esté corrupta o malformada
+                    ClearCart();
                     return BadRequest("Error al deserializar el carrito. Reinicie el carrito.");
                 }
             }
@@ -120,6 +121,10 @@ namespace TallerIDWMBackend.Controllers
             if (newQuantity <= 0)
             {
                 return BadRequest(new { message = "La cantidad debe ser mayor que 0." });
+            }
+            if (newQuantity > item.Product.StockQuantity)
+            {
+                return BadRequest(new { message = "No hay suficiente stock para esta cantidad." });
             }
 
             item.Quantity = newQuantity;
@@ -271,15 +276,16 @@ namespace TallerIDWMBackend.Controllers
             var claimsIdentity = HttpContext.User.Identity as ClaimsIdentity;
             var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
 
-            if (userIdClaim == null) 
-                return Unauthorized(new { message = "Usuario no autenticado." });
-
-            if (!long.TryParse(userIdClaim.Value, out long userId))
-                return Unauthorized(new { message = "ID de usuario inválido en el token." });
+            if (userIdClaim == null || !long.TryParse(userIdClaim.Value, out long userId))
+            {
+                return Unauthorized(new { message = "Usuario no autenticado o token inválido." });
+            }
 
             var user = await _dataContext.Users.FindAsync(userId);
-            if (user == null) 
-                return Unauthorized(new { message = $"Usuario no encontrado." });
+            if (user == null || !User.IsInRole("Customer"))
+            {
+                return Unauthorized(new { message = "No autorizado. El usuario debe ser un cliente." });
+            }
             
             DateTime utcNow = DateTime.UtcNow;
             TimeZoneInfo chileTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Santiago");
