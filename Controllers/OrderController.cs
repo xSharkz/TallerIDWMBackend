@@ -12,12 +12,12 @@ namespace TallerIDWMBackend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class OrdersController : ControllerBase
+    public class OrderController : ControllerBase
     {
         private readonly IOrderService _orderService;
         private readonly IUserRepository _userRepository;
 
-        public OrdersController(IOrderService orderService, IUserRepository userRepository)
+        public OrderController(IOrderService orderService, IUserRepository userRepository)
         {
             _orderService = orderService;
             _userRepository = userRepository;
