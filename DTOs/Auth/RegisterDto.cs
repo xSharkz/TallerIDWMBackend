@@ -4,12 +4,14 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using TallerIDWMBackend.Validation;
+using TallerIDWMBackend.Validations;
 namespace TallerIDWMBackend.DTOs.Auth
 {
     public class RegisterDto
     {
         [Required]
-        [StringLength(12)] // Asumiendo formato RUT
+        [StringLength(12)]
+        [RutValidatorAttribute(ErrorMessage = "El rut ingresado no es válido.")]
         public string Rut { get; set; } = null!;
 
         [Required]
