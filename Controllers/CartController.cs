@@ -166,10 +166,6 @@ namespace TallerIDWMBackend.Controllers
             return Ok(new { message = "Cantidad actualizada.", cartItems });
         }
 
-
-
-
-
         // 4. Visualizar carrito
         [HttpGet("view")]
         [Authorize]
