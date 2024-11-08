@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TallerIDWMBackend.DTOs.Product;
@@ -15,10 +16,12 @@ namespace TallerIDWMBackend.Controllers
     public class ProductController : ControllerBase
     {
         private readonly IProductRepository _productRepository;
+        private readonly IPhotoService _photoService;
 
-        public ProductController(IProductRepository productRepository)
+        public ProductController(IProductRepository productRepository, IPhotoService photoService)
         {
             _productRepository = productRepository;
+            _photoService = photoService;
         }
 
         // GET: api/product
@@ -120,11 +123,22 @@ namespace TallerIDWMBackend.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> AddProduct([FromBody] ProductCreateUpdateDto productDto)
+        public async Task<IActionResult> AddProduct([FromForm] ProductCreateUpdateDto productDto) 
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
+            }
+
+            // Subir la imagen si se proporciona
+            ImageUploadResult uploadResult = null;
+            if (productDto.File != null)
+            {
+                uploadResult = await _photoService.AddPhotoAsync(productDto.File);
+                if (uploadResult.Error != null)
+                {
+                    return BadRequest(new { message = "Error al subir la imagen", error = uploadResult.Error });
+                }
             }
 
             var product = new Product
@@ -133,8 +147,8 @@ namespace TallerIDWMBackend.Controllers
                 Type = productDto.Type,
                 Price = productDto.Price,
                 StockQuantity = productDto.StockQuantity,
-                ImageUrl = productDto.ImageUrl,
-                PublicId = productDto.PublicId
+                ImageUrl = uploadResult?.SecureUrl?.ToString(),
+                PublicId = uploadResult?.PublicId,
             };
 
             try
@@ -149,6 +163,7 @@ namespace TallerIDWMBackend.Controllers
                     StockQuantity = newProduct.StockQuantity,
                     ImageUrl = newProduct.ImageUrl
                 };
+
                 return CreatedAtAction(nameof(GetProductById), new { id = newProduct.Id }, newProductDto);
             }
             catch (InvalidOperationException ex)
@@ -157,36 +172,60 @@ namespace TallerIDWMBackend.Controllers
             }
         }
 
+
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateProduct(long id, [FromBody] ProductCreateUpdateDto productDto)
+        public async Task<IActionResult> UpdateProduct(long id, [FromBody] ProductCreateUpdateDto productDto, IFormFile file)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
+            var productToUpdate = await _productRepository.GetProductByIdAsync(id);
+            if (productToUpdate == null)
+            {
+                return NotFound(new { message = "Producto no encontrado." });
+            }
+
+            ImageUploadResult uploadResult = null;
+            if (file != null)
+            {
+                // Eliminar la foto anterior si se proporciona una nueva
+                if (!string.IsNullOrEmpty(productToUpdate.PublicId))
+                {
+                    await _photoService.DeletePhotoAsync(productToUpdate.PublicId);
+                }
+
+                uploadResult = await _photoService.AddPhotoAsync(file);
+                if (uploadResult.Error != null)
+                {
+                    return BadRequest(new { message = "Error al subir la imagen", error = uploadResult.Error });
+                }
+            }
+
             var updatedProduct = new Product
             {
+                Id = id,
                 Name = productDto.Name,
                 Type = productDto.Type,
                 Price = productDto.Price,
                 StockQuantity = productDto.StockQuantity,
-                ImageUrl = productDto.ImageUrl,
-                PublicId = productDto.PublicId
+                ImageUrl = uploadResult?.SecureUrl?.ToString() ?? productToUpdate.ImageUrl,
+                PublicId = uploadResult?.PublicId ?? productToUpdate.PublicId
             };
 
             try
             {
-                var product = await _productRepository.UpdateProductAsync(id, updatedProduct);
+                var updatedProductEntity = await _productRepository.UpdateProductAsync(id, updatedProduct);
                 var updatedProductDto = new ProductReadDto
                 {
-                    Id = product.Id,
-                    Name = product.Name,
-                    Type = product.Type,
-                    Price = product.Price,
-                    StockQuantity = product.StockQuantity,
-                    ImageUrl = product.ImageUrl
+                    Id = updatedProductEntity.Id,
+                    Name = updatedProductEntity.Name,
+                    Type = updatedProductEntity.Type,
+                    Price = updatedProductEntity.Price,
+                    StockQuantity = updatedProductEntity.StockQuantity,
+                    ImageUrl = updatedProductEntity.ImageUrl
                 };
                 return Ok(updatedProductDto);
             }
@@ -206,15 +245,20 @@ namespace TallerIDWMBackend.Controllers
         {
             try
             {
+                var product = await _productRepository.GetProductByIdAsync(id);
+                if (product != null && !string.IsNullOrEmpty(product.PublicId))
+                {
+                    // Eliminar la imagen asociada antes de borrar el producto
+                    await _photoService.DeletePhotoAsync(product.PublicId);
+                }
+
                 await _productRepository.DeleteProductAsync(id);
-                return NoContent();
+                return Ok( new { message = "Producto eliminado exitosamente."});
             }
             catch (NullReferenceException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
         }
-
-
     }
 }

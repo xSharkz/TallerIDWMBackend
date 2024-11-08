@@ -25,11 +25,6 @@ namespace TallerIDWMBackend.DTOs.Product
         [Range(0, 99999, ErrorMessage = "La cantidad en stock debe ser un número entero no negativo menor que 100 mil.")]
         public int StockQuantity { get; set; }
 
-        [Required]
-        [DataType(DataType.ImageUrl)]
-        [RegularExpression(@"^(https?://.*\.(png|jpg))$", ErrorMessage = "La URL de la imagen debe ser un enlace a un archivo .png o .jpg.")]
-        public string ImageUrl { get; set; } = null!;
-
-        public string PublicId { get; set; } = null!;
+        public IFormFile File { get; set; } = null!;
     }
 }
