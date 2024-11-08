@@ -20,7 +20,7 @@ namespace TallerIDWMBackend.Controllers
         // 1. Editar perfil
         [HttpPut("edit-profile")]
         [Authorize]
-        public async Task<IActionResult> EditProfile([FromBody] EditProfileDto editProfileDto)
+        public async Task<IActionResult> EditProfile([FromForm] EditProfileDto editProfileDto)
         {
             var userId = GetUserIdFromClaims(); // Método para obtener el ID del usuario desde los claims
             var user = await _userRepository.GetUserByIdAsync(userId);
@@ -42,7 +42,7 @@ namespace TallerIDWMBackend.Controllers
         // 2. Cambiar contraseña
         [HttpPut("change-password")]
         [Authorize]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
+        public async Task<IActionResult> ChangePassword([FromForm] ChangePasswordDto changePasswordDto)
         {
             var userId = GetUserIdFromClaims();
             var user = await _userRepository.GetUserByIdAsync(userId);
@@ -97,7 +97,7 @@ namespace TallerIDWMBackend.Controllers
 
         [HttpPut("update-status")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateUserStatus([FromBody] UpdateUserStatusDto updateUserStatusDto)
+        public async Task<IActionResult> UpdateUserStatus([FromForm] UpdateUserStatusDto updateUserStatusDto)
         {
             var user = await _userRepository.GetUserByIdAsync(updateUserStatusDto.UserId);
 

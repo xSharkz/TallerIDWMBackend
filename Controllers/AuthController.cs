@@ -28,7 +28,7 @@ namespace TallerIDWMBackend.Controllers
 
         // POST: api/auth/register
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
+        public async Task<IActionResult> Register([FromForm] RegisterDto registerDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -55,7 +55,7 @@ namespace TallerIDWMBackend.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
+        public async Task<IActionResult> Login([FromForm] LoginDto loginDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);

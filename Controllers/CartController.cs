@@ -111,7 +111,7 @@ namespace TallerIDWMBackend.Controllers
 
         [HttpPost("update-quantity/{productId}")]
         [Authorize]
-        public async Task<IActionResult> UpdateQuantity(long productId, [FromBody] int newQuantity)
+        public async Task<IActionResult> UpdateQuantity(long productId, [FromForm] int newQuantity)
         {
             var cartCookie = Request.Cookies["cart"];
 
@@ -263,7 +263,7 @@ namespace TallerIDWMBackend.Controllers
         // 5. Mostrar botón de pago (requiere inicio de sesión)
         [HttpPost("checkout")]
         [Authorize(Roles = "Customer")]
-        public async Task<IActionResult> Checkout([FromBody] DeliveryAddressDto address)
+        public async Task<IActionResult> Checkout([FromForm] DeliveryAddressDto address)
         {
             // Verificar si el carrito existe y contiene productos
             var cartCookie = Request.Cookies["cart"];
