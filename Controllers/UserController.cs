@@ -22,9 +22,9 @@ namespace TallerIDWMBackend.Controllers
         [Authorize]
         public async Task<IActionResult> EditProfile([FromForm] EditProfileDto editProfileDto)
         {
-            var userId = GetUserIdFromClaims(); // Método para obtener el ID del usuario desde los claims
-            var user = await _userRepository.GetUserByIdAsync(userId);
-            
+            // Obtener el usuario actual usando el método GetCurrentUserAsync del repositorio
+            var user = await _userRepository.GetCurrentUserAsync();
+
             if (user == null)
             {
                 return NotFound(new { message = "Usuario no encontrado." });
@@ -44,8 +44,8 @@ namespace TallerIDWMBackend.Controllers
         [Authorize]
         public async Task<IActionResult> ChangePassword([FromForm] ChangePasswordDto changePasswordDto)
         {
-            var userId = GetUserIdFromClaims();
-            var user = await _userRepository.GetUserByIdAsync(userId);
+            // Obtener el usuario actual usando el método GetCurrentUserAsync del repositorio
+            var user = await _userRepository.GetCurrentUserAsync();
 
             if (user == null)
             {
@@ -63,12 +63,6 @@ namespace TallerIDWMBackend.Controllers
             await _userRepository.UpdateUserAsync(user);
 
             return Ok(new { message = "Contraseña cambiada exitosamente." });
-        }
-
-        private long GetUserIdFromClaims()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            return userIdClaim != null ? long.Parse(userIdClaim.Value) : 0;
         }
 
         [HttpGet("customers")]

@@ -5,16 +5,25 @@ using TallerIDWMBackend.Interfaces;
 using TallerIDWMBackend.Models;
 using System.Threading.Tasks;
 using System.Linq;
+using TallerIDWMBackend.Services;
 
 namespace TallerIDWMBackend.Repository
 {
     public class UserRepository : IUserRepository
     {
         private readonly ApplicationDbContext _dataContext;
+        private readonly UserContextService _userContextService;
 
-        public UserRepository(ApplicationDbContext dataContext)
+        public UserRepository(ApplicationDbContext dataContext, UserContextService userContextService)
         {
             _dataContext = dataContext;
+            _userContextService = userContextService;
+        }
+
+        public async Task<User> GetCurrentUserAsync()
+        {
+            long userId = _userContextService.GetUserIdFromClaims();
+            return await GetUserByIdAsync(userId);
         }
 
         public async Task<User> GetUserByIdAsync(long id)

@@ -5,6 +5,7 @@ namespace TallerIDWMBackend.Interfaces
 {
     public interface IUserRepository
     {
+        Task<User> GetCurrentUserAsync();
         Task<User> GetUserByIdAsync(long id);
         Task UpdateUserAsync(User user);
         Task<User> GetUserByEmailAsync(string email);
