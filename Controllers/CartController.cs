@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using TallerIDWMBackend.Services;
 using TallerIDWMBackend.DTOs.Order;
 using System.Security.Claims;
+using TallerIDWMBackend.Interfaces;
 
 namespace TallerIDWMBackend.Controllers
 {
@@ -20,11 +21,13 @@ namespace TallerIDWMBackend.Controllers
     {
         private readonly ApplicationDbContext _dataContext;
         private readonly InvoiceService _invoiceService;
+        private readonly IProductRepository _productRepository;
 
-        public CartController(ApplicationDbContext dataContext, InvoiceService invoiceService)
+        public CartController(ApplicationDbContext dataContext, InvoiceService invoiceService, IProductRepository productRepository)
         {
             _dataContext = dataContext;
             _invoiceService = invoiceService;
+            _productRepository = productRepository;
         }
 
         // 1. Agregar un producto al carrito
@@ -108,34 +111,50 @@ namespace TallerIDWMBackend.Controllers
 
         [HttpPost("update-quantity/{productId}")]
         [Authorize]
-        public IActionResult UpdateQuantity(long productId, [FromBody] int newQuantity)
+        public async Task<IActionResult> UpdateQuantity(long productId, [FromBody] int newQuantity)
         {
             var cartCookie = Request.Cookies["cart"];
-            
+
             if (string.IsNullOrWhiteSpace(cartCookie))
             {
                 return BadRequest(new { message = "El carrito está vacío." });
             }
 
             var cartItems = JsonConvert.DeserializeObject<List<CartItem>>(cartCookie);
+            
+            // Recuperar el producto desde la base de datos utilizando el productId
+            var product = await _productRepository.GetProductByIdAsync(productId);
+            if (product == null)
+            {
+                return NotFound(new { message = "Producto no encontrado." });
+            }
+
+            // Buscar el item en el carrito y cargar el producto correspondiente
             var item = cartItems.FirstOrDefault(p => p.ProductId == productId);
             if (item == null)
             {
                 return NotFound(new { message = "Producto no encontrado en el carrito." });
             }
 
+            // Asignar el producto completo al CartItem
+            item.Product = product;
+
+            // Verificar que la cantidad sea válida
             if (newQuantity <= 0)
             {
                 return BadRequest(new { message = "La cantidad debe ser mayor que 0." });
             }
-            if (newQuantity > item.Product.StockQuantity)
+
+            // Verificar que no se exceda el stock disponible
+            if (newQuantity > product.StockQuantity)
             {
                 return BadRequest(new { message = "No hay suficiente stock para esta cantidad." });
             }
 
+            // Actualizar la cantidad en el carrito
             item.Quantity = newQuantity;
 
-            // Guardar el carrito actualizado
+            // Guardar el carrito actualizado en la cookie
             Response.Cookies.Append("cart", JsonConvert.SerializeObject(cartItems), new CookieOptions
             {
                 Expires = DateTimeOffset.Now.AddDays(7),
@@ -146,6 +165,9 @@ namespace TallerIDWMBackend.Controllers
 
             return Ok(new { message = "Cantidad actualizada.", cartItems });
         }
+
+
+
 
 
         // 4. Visualizar carrito
