@@ -53,13 +53,7 @@ namespace TallerIDWMBackend.Controllers
                 try
                 {
                     // Intentar deserializar la cookie como una lista de CartItem
-                    cartItems = JsonConvert.DeserializeObject<List<CartItem>>(cartCookie);
-
-                    // Asegurarse de que sea una lista válida
-                    if (cartItems == null)
-                    {
-                        return BadRequest("El carrito no contiene datos válidos.");
-                    }
+                    cartItems = JsonConvert.DeserializeObject<List<CartItem>>(cartCookie) ?? new List<CartItem>(); // Si la deserialización devuelve null, usar una lista vacía
                 }
                 catch (JsonSerializationException)
                 {
@@ -67,6 +61,17 @@ namespace TallerIDWMBackend.Controllers
                     ClearCart();
                     return BadRequest("Error al deserializar el carrito. Reinicie el carrito.");
                 }
+            }
+
+            // Verifica si el usuario está autenticado
+            string sessionId;
+            if (User.Identity.IsAuthenticated)
+            {
+                sessionId = User.FindFirstValue(ClaimTypes.NameIdentifier);  // Usar el UserId del usuario autenticado
+            }
+            else
+            {
+                sessionId = "guest-" + Guid.NewGuid().ToString();  // Usar un GUID para un usuario invitado
             }
 
             // Verificar si el producto ya está en el carrito
@@ -83,7 +88,7 @@ namespace TallerIDWMBackend.Controllers
                 {
                     ProductId = product.Id,
                     Quantity = 1,
-                    SessionId = "guest-id" 
+                    SessionId = sessionId
                 });
             }
 
@@ -98,6 +103,7 @@ namespace TallerIDWMBackend.Controllers
 
             return Ok(new { message = "Producto añadido al carrito." });
         }
+
 
 
         [HttpPost("update-quantity/{productId}")]
