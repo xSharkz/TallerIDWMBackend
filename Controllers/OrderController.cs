@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TallerIDWMBackend.Interfaces;
 using TallerIDWMBackend.DTOs.Order;
+using TallerIDWMBackend.Repository;
 
 namespace TallerIDWMBackend.Controllers
 {
@@ -14,10 +15,12 @@ namespace TallerIDWMBackend.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
+        private readonly IUserRepository _userRepository;
 
-        public OrdersController(IOrderService orderService)
+        public OrdersController(IOrderService orderService, IUserRepository userRepository)
         {
             _orderService = orderService;
+            _userRepository = userRepository;
         }
 
         // Endpoint para que el administrador obtenga todas las órdenes con opciones de paginación, búsqueda y ordenamiento
@@ -30,17 +33,26 @@ namespace TallerIDWMBackend.Controllers
         }
 
         // Endpoint para que un usuario obtenga sus propias órdenes con paginación
-        [HttpGet("user/{userId}")]
-        [Authorize]
-        public async Task<IActionResult> GetUserOrders(long userId, int pageNumber = 1, int pageSize = 10)
+        [HttpGet("orders")]
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> GetUserOrders(int pageNumber = 1, int pageSize = 10)
         {
-            // Verificar que el usuario autenticado solo pueda acceder a sus propias órdenes
-            if (User.IsInRole("User") && !User.IsInRole("Admin") && User.FindFirst("sub")?.Value != userId.ToString())
+
+            // Obtener el usuario actual usando el método GetCurrentUserAsync del repositorio
+            var user = await _userRepository.GetCurrentUserAsync();
+
+            if (user == null)
+            {
+                return NotFound(new { message = "Usuario no encontrado." });
+            }
+
+            // Verificar que el usuario autenticado solo pueda acceder a sus propias órdenes, excepto si es administrador
+            if (User.IsInRole("User") && !User.IsInRole("Admin"))
             {
                 return Forbid("No tienes permiso para acceder a las órdenes de otro usuario.");
             }
 
-            var result = await _orderService.GetOrdersByUserIdAsync(userId, pageNumber, pageSize);
+            var result = await _orderService.GetOrdersByUserIdAsync(user.Id, pageNumber, pageSize);
             return Ok(result);
         }
     }

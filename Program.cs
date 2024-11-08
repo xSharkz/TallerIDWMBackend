@@ -33,6 +33,8 @@ builder.Services.AddScoped<DataSeeder>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<UserContextService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 builder.Services.AddScoped<IPhotoService, PhotoService>();
