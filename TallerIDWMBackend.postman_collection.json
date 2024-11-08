@@ -291,7 +291,7 @@
 				{
 					"name": "Eliminar Producto",
 					"request": {
-						"method": "DELETE",
+						"method": "POST",
 						"header": [],
 						"url": {
 							"raw": "{{domain}}/api/Cart/remove-item/{{id}}",
@@ -619,7 +619,7 @@
 				{
 					"name": "Actualizar Usuario (Admin)",
 					"request": {
-						"method": "POST",
+						"method": "PUT",
 						"header": [],
 						"body": {
 							"mode": "formdata",
@@ -698,25 +698,6 @@
 									"value": "10",
 									"description": "Cantidad de Usuarios a Mostrar"
 								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Ver Productos por Id",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{domain}}/api/Product/{{id}}",
-							"host": [
-								"{{domain}}"
-							],
-							"path": [
-								"api",
-								"Product",
-								"{{id}}"
 							]
 						}
 					},
@@ -824,7 +805,7 @@
 				{
 					"name": "Actualizar Producto (Admin)",
 					"request": {
-						"method": "POST",
+						"method": "PUT",
 						"header": [],
 						"body": {
 							"mode": "formdata",
