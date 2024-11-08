@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TallerIDWMBackend.DTOs.User;
 using TallerIDWMBackend.Interfaces;
+using TallerIDWMBackend.Repository;
 
 namespace TallerIDWMBackend.Controllers
 {
@@ -19,7 +20,7 @@ namespace TallerIDWMBackend.Controllers
 
         // 1. Editar perfil
         [HttpPut("edit-profile")]
-        [Authorize]
+        [Authorize(Roles = "Customer,Admin")]
         public async Task<IActionResult> EditProfile([FromForm] EditProfileDto editProfileDto)
         {
             // Obtener el usuario actual usando el método GetCurrentUserAsync del repositorio
@@ -30,9 +31,10 @@ namespace TallerIDWMBackend.Controllers
                 return NotFound(new { message = "Usuario no encontrado." });
             }
 
-            user.Name = editProfileDto.Name;
-            user.BirthDate = editProfileDto.BirthDate;
-            user.Gender = editProfileDto.Gender;
+            // Mantener el nombre actual si no se proporciona un nuevo valor en editProfileDto
+            user.Name = editProfileDto.Name ?? user.Name;
+            user.BirthDate = editProfileDto.BirthDate ?? user.BirthDate;
+            user.Gender = editProfileDto.Gender ?? user.Gender;
 
             await _userRepository.UpdateUserAsync(user);
 
@@ -41,7 +43,7 @@ namespace TallerIDWMBackend.Controllers
 
         // 2. Cambiar contraseña
         [HttpPut("change-password")]
-        [Authorize]
+        [Authorize(Roles = "Customer,Admin")]
         public async Task<IActionResult> ChangePassword([FromForm] ChangePasswordDto changePasswordDto)
         {
             // Obtener el usuario actual usando el método GetCurrentUserAsync del repositorio
