@@ -1,15 +1,11 @@
-using System;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using TallerIDWMBackend.Interfaces;
-using TallerIDWMBackend.Models;
-using TallerIDWMBackend.DTOs.Auth;
 using TallerIDWMBackend.DTOs;
+using TallerIDWMBackend.DTOs.Auth;
+using TallerIDWMBackend.Interfaces;
+using TallerIDWMBackend.Services;
 
 namespace TallerIDWMBackend.Controllers
 {
@@ -17,13 +13,13 @@ namespace TallerIDWMBackend.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly IUserRepository _userRepository;
-        private readonly IConfiguration _configuration;
+        private readonly IAuthService _authService;
+        private readonly IUserRepository _userRepository;  // Agregar dependencia
 
-        public AuthController(IUserRepository userRepository, IConfiguration configuration)
+        public AuthController(IAuthService authService, IUserRepository userRepository)
         {
-            _userRepository = userRepository;
-            _configuration = configuration;
+            _authService = authService;
+            _userRepository = userRepository;  // Asignar el repositorio
         }
 
         // POST: api/auth/register
@@ -33,25 +29,15 @@ namespace TallerIDWMBackend.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (await _userRepository.IsEmailOrRutRegisteredAsync(registerDto.Email, registerDto.Rut))
+            try
             {
-                return BadRequest("El correo electrónico o RUT ya están registrados.");
+                var message = await _authService.RegisterAsync(registerDto);
+                return Ok(message);
             }
-
-            var user = new User
+            catch (InvalidOperationException ex)
             {
-                Rut = registerDto.Rut,
-                Name = registerDto.Name,
-                BirthDate = registerDto.BirthDate,
-                Email = registerDto.Email,
-                Gender = registerDto.Gender,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password)
-            };
-
-            await _userRepository.AddUserAsync(user);
-            await _userRepository.SaveChangesAsync();
-
-            return Ok("Usuario registrado exitosamente.");
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost("login")]
@@ -60,63 +46,36 @@ namespace TallerIDWMBackend.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var user = await _userRepository.GetUserByEmailAsync(loginDto.Email);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
+            try
             {
-                return Unauthorized("Correo electrónico o contraseña incorrectos.");
-            }
-            if (user.IsEnabled == false){
-                return Unauthorized("La cuenta ingresada fue eliminada del sistema anteriormente.");
-            }
+                var token = await _authService.LoginAsync(loginDto.Email, loginDto.Password);
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY");
-
-            if (string.IsNullOrEmpty(secretKey) || secretKey.Length < 16)
-            {
-                return StatusCode(500, "Error en la configuración: La clave secreta de JWT no está configurada o es demasiado corta.");
-            }
-
-            var key = Encoding.ASCII.GetBytes(secretKey);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
+                var cookieOptions = new CookieOptions
                 {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Name, user.Name),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "Customer")
-                }),
-                Expires = DateTime.UtcNow.AddHours(24),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTime.UtcNow.AddHours(24)
+                };
 
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
+                Response.Cookies.Append("jwt_token", token, cookieOptions);
 
-            var cookieOptions = new CookieOptions
+                return Ok(new { Message = "Inicio de sesión exitoso", Token = token });
+            }
+            catch (UnauthorizedAccessException ex)
             {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = token.ValidTo
-            };
-
-            Response.Cookies.Append("jwt_token", tokenString, cookieOptions);
-
-            return Ok(new { Message = "Inicio de sesión exitoso", Expiration = token.ValidTo });
+                return Unauthorized(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         [HttpPost("logout")]
         [Authorize]
         public IActionResult Logout()
         {
-            var token = HttpContext.Request.Cookies["jwt_token"];
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                return BadRequest(new { message = "No se encontró el token en la cookie." });
-            }
-
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
