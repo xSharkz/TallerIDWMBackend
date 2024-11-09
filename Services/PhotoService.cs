@@ -27,6 +27,13 @@ public class PhotoService : IPhotoService
 
         if (file?.Length > 0)
         {
+            // Validar el tipo de archivo
+            var allowedTypes = new List<string> { "image/jpeg", "image/png" };
+            if (!allowedTypes.Contains(file.ContentType))
+            {
+                throw new InvalidOperationException("Solo se permiten archivos .jpg y .png.");
+            }
+
             using var stream = file.OpenReadStream();
             var uploadParams = new ImageUploadParams
             {
