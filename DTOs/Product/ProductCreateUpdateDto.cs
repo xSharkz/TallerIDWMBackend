@@ -25,6 +25,8 @@ namespace TallerIDWMBackend.DTOs.Product
         [Range(0, 99999, ErrorMessage = "La cantidad en stock debe ser un número entero no negativo menor que 100 mil.")]
         public int StockQuantity { get; set; }
 
+        [Required]
+        [DataType(DataType.Upload)]
         public IFormFile File { get; set; } = null!;
     }
 }
