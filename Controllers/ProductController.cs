@@ -11,36 +11,39 @@ using TallerIDWMBackend.Models;
 
 namespace TallerIDWMBackend.Controllers
 {
+    // Ruta base para las solicitudes de este controlador
     [Route("api/[controller]")]
     [ApiController]
     public class ProductController : ControllerBase
     {
-        private readonly IProductRepository _productRepository;
-        private readonly IPhotoService _photoService;
+        private readonly IProductRepository _productRepository;  // Repositorio de productos para interactuar con la base de datos
+        private readonly IPhotoService _photoService;  // Servicio de fotos para gestionar imágenes de productos
 
+        // Constructor que inyecta las dependencias necesarias
         public ProductController(IProductRepository productRepository, IPhotoService photoService)
         {
             _productRepository = productRepository;
             _photoService = photoService;
         }
 
-        // GET: api/product
+        // Endpoint para obtener productos disponibles con opciones de paginación y búsqueda
         [HttpGet("available")]
         public async Task<IActionResult> GetAvailableProducts(
-            string searchQuery = "", 
-            string type = "", 
-            string sortOrder = "asc", 
-            int pageNumber = 1, 
-            int pageSize = 10)
+            string searchQuery = "",  // Parámetro para filtrar productos por nombre
+            string type = "",  // Filtro por tipo de producto
+            string sortOrder = "asc",  // Ordenamiento ascendente o descendente
+            int pageNumber = 1,  // Número de página para la paginación
+            int pageSize = 10)  // Tamaño de página para la paginación
         {
             var products = await _productRepository.GetPagedProductsAsync(searchQuery, type, sortOrder, pageNumber, pageSize, includeOutOfStock: false);
             var totalItems = await _productRepository.GetTotalProductsAsync(searchQuery, type, includeOutOfStock: false);
 
-            if (products == null || !products.Any())
+            if (products == null || !products.Any())  // Si no se encuentran productos
             {
                 return NotFound(new { message = "No se encontraron productos." });
             }
 
+            // Transformar los productos en DTOs para la respuesta
             var productDtos = products.Select(p => new ProductReadDto
             {
                 Id = p.Id,
@@ -53,24 +56,24 @@ namespace TallerIDWMBackend.Controllers
 
             return Ok(new
             {
-                TotalItems = totalItems,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                Products = productDtos
+                TotalItems = totalItems,  // Total de productos encontrados
+                PageNumber = pageNumber,  // Página actual
+                PageSize = pageSize,  // Tamaño de página
+                Products = productDtos  // Lista de productos en formato DTO
             });
         }
 
-
-        // GET: api/product/{id}
+        // Endpoint para obtener un producto por su ID
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProductById(long id)
         {
             var product = await _productRepository.GetProductByIdAsync(id);
-            if (product == null)
+            if (product == null)  // Si el producto no se encuentra
             {
                 return NotFound(new { message = "Producto no encontrado." });
             }
 
+            // Transformar el producto en DTO para la respuesta
             var productDto = new ProductReadDto
             {
                 Id = product.Id,
@@ -84,8 +87,9 @@ namespace TallerIDWMBackend.Controllers
             return Ok(productDto);
         }
 
+        // Endpoint para obtener todos los productos con acceso restringido a administradores
         [HttpGet("all")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]  // Solo accesible por administradores
         public async Task<IActionResult> GetAllProductsForAdmin(
             string searchQuery = "", 
             string type = "", 
@@ -96,11 +100,12 @@ namespace TallerIDWMBackend.Controllers
             var products = await _productRepository.GetPagedProductsAsync(searchQuery, type, sortOrder, pageNumber, pageSize, includeOutOfStock: true);
             var totalItems = await _productRepository.GetTotalProductsAsync(searchQuery, type, includeOutOfStock: true);
 
-            if (products == null || !products.Any())
+            if (products == null || !products.Any())  // Si no se encuentran productos
             {
                 return NotFound(new { message = "No se encontraron productos." });
             }
 
+            // Transformar los productos en DTOs para la respuesta
             var productDtos = products.Select(p => new ProductReadDto
             {
                 Id = p.Id,
@@ -113,29 +118,28 @@ namespace TallerIDWMBackend.Controllers
 
             return Ok(new
             {
-                TotalItems = totalItems,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                Products = productDtos
+                TotalItems = totalItems,  // Total de productos encontrados
+                PageNumber = pageNumber,  // Página actual
+                PageSize = pageSize,  // Tamaño de página
+                Products = productDtos  // Lista de productos en formato DTO
             });
         }
 
-
+        // Endpoint para agregar un nuevo producto
         [HttpPost]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> AddProduct([FromForm] ProductCreateUpdateDto productDto) 
+        [Authorize(Roles = "Admin")]  // Solo accesible por administradores
+        public async Task<IActionResult> AddProduct([FromForm] ProductCreateUpdateDto productDto)
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid)  // Verificar si el modelo es válido
             {
                 return BadRequest(ModelState);
             }
 
-            // Subir la imagen si se proporciona
             ImageUploadResult uploadResult = null;
-            if (productDto.File != null)
+            if (productDto.File != null)  // Si se proporciona una imagen
             {
                 uploadResult = await _photoService.AddPhotoAsync(productDto.File);
-                if (uploadResult.Error != null)
+                if (uploadResult.Error != null)  // Si hubo un error al subir la imagen
                 {
                     return BadRequest(new { message = "Error al subir la imagen", error = uploadResult.Error });
                 }
@@ -172,33 +176,32 @@ namespace TallerIDWMBackend.Controllers
             }
         }
 
-
+        // Endpoint para actualizar un producto existente
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]  // Solo accesible por administradores
         public async Task<IActionResult> UpdateProduct(long id, [FromForm] ProductCreateUpdateDto productDto)
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid)  // Verificar si el modelo es válido
             {
                 return BadRequest(ModelState);
             }
 
             var productToUpdate = await _productRepository.GetProductByIdAsync(id);
-            if (productToUpdate == null)
+            if (productToUpdate == null)  // Si el producto no existe
             {
                 return NotFound(new { message = "Producto no encontrado." });
             }
 
             ImageUploadResult uploadResult = null;
-            if (productDto.File != null)
+            if (productDto.File != null)  // Si se proporciona una nueva imagen
             {
-                // Eliminar la foto anterior si se proporciona una nueva
-                if (!string.IsNullOrEmpty(productToUpdate.PublicId))
+                if (!string.IsNullOrEmpty(productToUpdate.PublicId))  // Eliminar la foto anterior si existe
                 {
                     await _photoService.DeletePhotoAsync(productToUpdate.PublicId);
                 }
 
                 uploadResult = await _photoService.AddPhotoAsync(productDto.File);
-                if (uploadResult.Error != null)
+                if (uploadResult.Error != null)  // Si hubo un error al subir la imagen
                 {
                     return BadRequest(new { message = "Error al subir la imagen", error = uploadResult.Error });
                 }
@@ -238,15 +241,15 @@ namespace TallerIDWMBackend.Controllers
                 return Conflict(new { message = ex.Message });
             }
         }
-
+        // Endpoint para eliminar un producto
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]// Solo accesible por administradores
         public async Task<IActionResult> DeleteProduct(long id)
         {
             try
             {
                 var product = await _productRepository.GetProductByIdAsync(id);
-                if (product != null && !string.IsNullOrEmpty(product.PublicId))
+                if (product != null && !string.IsNullOrEmpty(product.PublicId)) // Si el producto tiene una imagen asociada
                 {
                     // Eliminar la imagen asociada antes de borrar el producto
                     await _photoService.DeletePhotoAsync(product.PublicId);

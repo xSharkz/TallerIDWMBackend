@@ -15,16 +15,19 @@ using TallerIDWMBackend.Interfaces;
 
 namespace TallerIDWMBackend.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
+    [ApiController] // Indica que esta clase es un controlador de API que maneja solicitudes HTTP.
+    [Route("api/[controller]")] // Establece la ruta base para las solicitudes de este controlador. "[controller]" se reemplaza automáticamente con el nombre de la clase, en este caso, "cart".
     public class CartController : ControllerBase
     {
-        private readonly ApplicationDbContext _dataContext;
-        private readonly InvoiceService _invoiceService;
-        private readonly IProductRepository _productRepository;
+        // Declara los servicios y repositorios necesarios para la lógica del controlador.
+        private readonly ApplicationDbContext _dataContext; // Contexto de la base de datos, se utiliza para interactuar con la base de datos.
+        private readonly InvoiceService _invoiceService; // Servicio encargado de la lógica relacionada con las facturas.
+        private readonly IProductRepository _productRepository; // Repositorio de productos para acceder a los datos de productos en la base de datos.
 
+        // Constructor del controlador, que recibe las dependencias necesarias a través de inyección de dependencias.
         public CartController(ApplicationDbContext dataContext, InvoiceService invoiceService, IProductRepository productRepository)
         {
+            // Asigna las dependencias a las variables privadas correspondientes.
             _dataContext = dataContext;
             _invoiceService = invoiceService;
             _productRepository = productRepository;
@@ -224,99 +227,121 @@ namespace TallerIDWMBackend.Controllers
         }
 
 
-        [HttpPost("remove-item/{productId}")]
-        [Authorize]
+        [HttpPost("remove-item/{productId}")] // Define la ruta para eliminar un producto del carrito, donde {productId} es un parámetro de la URL.
+        [Authorize] // Indica que este método requiere que el usuario esté autenticado.
         public IActionResult RemoveItem(long productId)
         {
+            // Recupera el valor de la cookie "cart", que contiene el carrito de compras del usuario.
             var cartCookie = Request.Cookies["cart"];
             
+            // Si la cookie no existe o está vacía, se retorna un error indicando que el carrito está vacío.
             if (string.IsNullOrWhiteSpace(cartCookie))
             {
                 return BadRequest(new { message = "El carrito está vacío." });
             }
 
+            // Deserializa la cookie del carrito a una lista de objetos CartItem.
             var cartItems = JsonConvert.DeserializeObject<List<CartItem>>(cartCookie);
+
+            // Busca el artículo en el carrito que coincida con el ID del producto recibido.
             var item = cartItems.FirstOrDefault(p => p.ProductId == productId);
+            
+            // Si el producto no está en el carrito, se retorna un error indicando que no se encontró.
             if (item == null)
             {
                 return NotFound(new { message = "Producto no encontrado en el carrito." });
             }
 
+            // Elimina el producto del carrito.
             cartItems.Remove(item);
 
+            // Vuelve a guardar el carrito actualizado en la cookie, serializando la lista de artículos.
             Response.Cookies.Append("cart", JsonConvert.SerializeObject(cartItems), new CookieOptions
             {
-                Expires = DateTimeOffset.Now.AddDays(7),
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict
+                Expires = DateTimeOffset.Now.AddDays(7), // Establece la fecha de expiración de la cookie.
+                HttpOnly = true, // Hace que la cookie sea accesible solo a través de HTTP, no mediante JavaScript.
+                Secure = true, // Hace que la cookie se transmita solo a través de conexiones seguras (HTTPS).
+                SameSite = SameSiteMode.Strict // Restringe el envío de la cookie solo a solicitudes del mismo sitio.
             });
 
+            // Devuelve una respuesta exitosa con un mensaje y el carrito actualizado.
             return Ok(new { message = "Producto eliminado del carrito.", cartItems });
         }
 
 
-        // 5. Mostrar botón de pago (requiere inicio de sesión)
+
+        // Ruta para realizar el checkout del carrito de compras, requiere que el usuario esté autenticado con el rol de "Customer".
         [HttpPost("checkout")]
-        [Authorize(Roles = "Customer")]
+        [Authorize(Roles = "Customer")] // Requiere que el usuario tenga el rol de "Customer".
         public async Task<IActionResult> Checkout([FromForm] DeliveryAddressDto address)
         {
-            // Verificar si el carrito existe y contiene productos
+            // Verificar si el carrito existe y contiene productos.
             var cartCookie = Request.Cookies["cart"];
-            if (string.IsNullOrWhiteSpace(cartCookie))
+            if (string.IsNullOrWhiteSpace(cartCookie)) // Si la cookie del carrito está vacía o no existe.
             {
-                return BadRequest(new { message = "El carrito está vacío." });
+                return BadRequest(new { message = "El carrito está vacío." }); // Retorna un error.
             }
 
+            // Deserializa la cookie del carrito para obtener los artículos en el carrito.
             var cartItems = JsonConvert.DeserializeObject<List<CartItem>>(cartCookie);
-            if (cartItems == null || !cartItems.Any())
+            if (cartItems == null || !cartItems.Any()) // Si no hay artículos en el carrito.
             {
-                return BadRequest(new { message = "El carrito está vacío." });
+                return BadRequest(new { message = "El carrito está vacío." }); // Retorna un error.
             }
 
-            // Obtener los IDs de los productos en el carrito
+            // Obtener los IDs de los productos en el carrito.
             var productIds = cartItems.Select(ci => ci.ProductId).ToList();
+            
+            // Obtiene los productos de la base de datos según los IDs en el carrito.
             var products = await _dataContext.Products
                 .Where(p => productIds.Contains(p.Id))
                 .ToListAsync();
 
-            // Procesar stock y calcular total
+            // Procesar stock y calcular el total.
             foreach (var cartItem in cartItems)
             {
+                // Asocia el producto al artículo del carrito.
                 cartItem.Product = products.FirstOrDefault(p => p.Id == cartItem.ProductId);
-                if (cartItem.Product == null)
+                if (cartItem.Product == null) // Si el producto no se encuentra en la base de datos.
                 {
                     return BadRequest(new { message = $"El producto con ID {cartItem.ProductId} no fue encontrado." });
                 }
+
+                // Verifica que haya suficiente stock para la cantidad del artículo en el carrito.
                 if (cartItem.Product.StockQuantity < cartItem.Quantity)
                 {
                     return BadRequest(new { message = $"No hay suficiente stock para el producto {cartItem.Product.Name}." });
                 }
+
+                // Actualiza el stock del producto restando la cantidad del carrito.
                 cartItem.Product.StockQuantity -= cartItem.Quantity;
             }
-            
+
+            // Calcula el monto total de la orden sumando el precio de cada artículo por su cantidad.
             var totalAmount = cartItems.Sum(item => item.Product.Price * item.Quantity);
-            
+
+            // Obtiene el ID del usuario actual desde el token JWT.
             var claimsIdentity = HttpContext.User.Identity as ClaimsIdentity;
             var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
-
+            
             if (userIdClaim == null || !long.TryParse(userIdClaim.Value, out long userId))
             {
                 return Unauthorized(new { message = "Usuario no autenticado o token inválido." });
             }
 
+            // Obtiene el usuario desde la base de datos usando el ID.
             var user = await _dataContext.Users.FindAsync(userId);
-            if (user == null || !User.IsInRole("Customer"))
+            if (user == null || !User.IsInRole("Customer")) // Verifica que el usuario sea un cliente.
             {
                 return Unauthorized(new { message = "No autorizado. El usuario debe ser un cliente." });
             }
             
+            // Obtiene la fecha y hora actual en formato UTC y luego la convierte a la hora local de Chile.
             DateTime utcNow = DateTime.UtcNow;
             TimeZoneInfo chileTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Santiago");
-            // Convierte la hora UTC a la hora local de Chile
             DateTime orderDate = TimeZoneInfo.ConvertTimeFromUtc(utcNow, chileTimeZone);
 
-            // Crear la orden
+            // Crea una nueva orden con los detalles del usuario, fecha, monto total y dirección de entrega.
             var order = new Order
             {
                 UserId = user.Id,
@@ -331,34 +356,38 @@ namespace TallerIDWMBackend.Controllers
                 }).ToList()
             };
 
+            // Agrega la nueva orden a la base de datos.
             _dataContext.Orders.Add(order);
-            await _dataContext.SaveChangesAsync();
+            await _dataContext.SaveChangesAsync(); // Guarda los cambios en la base de datos.
 
-            // Generar la factura en PDF
+            // Genera la factura en formato PDF usando el servicio de facturación.
             var pdfBytes = _invoiceService.GenerateInvoicePdf(order, cartItems);
 
-            // Limpiar el carrito
-            ClearCart();
+            // Limpia el carrito del usuario (eliminando la cookie).
+            ClearCart(); // Este método es el que limpia la cookie del carrito.
 
-            // Enviar el PDF como archivo descargable
+            // Envía el archivo PDF generado como una respuesta descargable al cliente.
             return File(pdfBytes, "application/pdf", $"Factura_Orden_{order.Id}_IDWM.pdf");
         }
+
 
 
         [HttpPost("clear-cart")]
         public IActionResult ClearCart()
         {
-            // Eliminar la cookie del carrito
+            // Eliminar la cookie del carrito. Se establece una nueva cookie con el mismo nombre pero con una fecha de expiración en el pasado
+            // Esto hace que la cookie se elimine automáticamente.
             Response.Cookies.Append("cart", "", new CookieOptions
             {
-                Expires = DateTimeOffset.Now.AddDays(-1), // Establecer la cookie con una fecha en el pasado para eliminarla
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict
+                // Establecer la cookie con una fecha de expiración en el pasado para eliminarla
+                Expires = DateTimeOffset.Now.AddDays(-1),  // Se establece la fecha en el pasado para asegurar que la cookie sea eliminada
+                HttpOnly = true,  // Hace que la cookie sea accesible solo desde el servidor (no desde JavaScript en el cliente)
+                Secure = true,  // Solo se enviará la cookie a través de conexiones HTTPS (requiere que el servidor tenga habilitado HTTPS)
+                SameSite = SameSiteMode.Strict  // Establece una política de seguridad para las cookies, limitando su envío entre sitios
             });
 
+            // Retorna un mensaje de éxito indicando que el carrito ha sido reiniciado (eliminado)
             return Ok(new { message = "Carrito reiniciado." });
         }
-
     }
 }
