@@ -7,26 +7,59 @@ using TallerIDWMBackend.Validations;
 
 namespace TallerIDWMBackend.Models
 {
+    /// <summary>
+    /// Representa un usuario del sistema, que puede ser un cliente o un administrador.
+    /// </summary>
     public class User
     {
+        /// <summary>
+        /// Identificador único del usuario.
+        /// </summary>
         public long Id { get; set; }
 
-        public string Rut { get; set; } = null!; // RUT válido y único.
+        /// <summary>
+        /// RUT del usuario, debe ser único y válido.
+        /// </summary>
+        public string Rut { get; set; } = null!;
 
-        public string Name { get; set; } = null!; // Nombre entre 8 y 255 caracteres.
+        /// <summary>
+        /// Nombre del usuario. Debe tener entre 8 y 255 caracteres.
+        /// </summary>
+        public string Name { get; set; } = null!;
 
-        public DateTime BirthDate { get; set; } // Fecha de nacimiento válida.
+        /// <summary>
+        /// Fecha de nacimiento del usuario. Debe ser una fecha válida.
+        /// </summary>
+        public DateTime BirthDate { get; set; }
 
-        public string Email { get; set; } = null!; // Correo válido y único.
+        /// <summary>
+        /// Correo electrónico del usuario. Debe ser único y estar en formato válido.
+        /// </summary>
+        public string Email { get; set; } = null!;
 
-        public string Gender { get; set; } = null!; // Género: Femenino, Masculino, Prefiero no decirlo, Otro.
+        /// <summary>
+        /// Género del usuario. Puede ser: Femenino, Masculino, Prefiero no decirlo, Otro.
+        /// </summary>
+        public string Gender { get; set; } = null!;
 
-        public string PasswordHash { get; set; } = null!; // Contraseña encriptada.
+        /// <summary>
+        /// Contraseña del usuario, almacenada como un hash encriptado.
+        /// </summary>
+        public string PasswordHash { get; set; } = null!;
 
-        public bool IsAdmin { get; set; } = false; // Indica si es administrador.
+        /// <summary>
+        /// Indica si el usuario es administrador. El valor predeterminado es falso.
+        /// </summary>
+        public bool IsAdmin { get; set; } = false;
 
-        public bool IsEnabled { get; set; } = true; // Indica si está habilitado.
+        /// <summary>
+        /// Indica si la cuenta del usuario está habilitada. El valor predeterminado es verdadero.
+        /// </summary>
+        public bool IsEnabled { get; set; } = true;
 
+        /// <summary>
+        /// Relación con los pedidos del usuario. Un usuario puede tener múltiples pedidos.
+        /// </summary>
         public ICollection<Order> Orders { get; set; } = new List<Order>();
     }
 }
