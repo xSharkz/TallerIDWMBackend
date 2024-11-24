@@ -16,17 +16,33 @@ namespace TallerIDWMBackend.Controllers
     [ApiController]
     public class ProductController : ControllerBase
     {
+        /// <summary>
+        /// Controlador que gestiona las operaciones relacionadas con productos.
+        /// Permite obtener, agregar, actualizar y eliminar productos, así como manejar imágenes asociadas a ellos.
+        /// </summary>
         private readonly IProductRepository _productRepository;  // Repositorio de productos para interactuar con la base de datos
         private readonly IPhotoService _photoService;  // Servicio de fotos para gestionar imágenes de productos
 
-        // Constructor que inyecta las dependencias necesarias
+        /// <summary>
+        /// Constructor del controlador de productos. Inyecta las dependencias necesarias para el funcionamiento.
+        /// </summary>
+        /// <param name="productRepository">Repositorio de productos</param>
+        /// <param name="photoService">Servicio para manejo de fotos de productos</param>
         public ProductController(IProductRepository productRepository, IPhotoService photoService)
         {
             _productRepository = productRepository;
             _photoService = photoService;
         }
 
-        // Endpoint para obtener productos disponibles con opciones de paginación y búsqueda
+        /// <summary>
+        /// Obtiene los productos disponibles, con opciones de filtrado, ordenamiento y paginación.
+        /// </summary>
+        /// <param name="searchQuery">Cadena para filtrar productos por nombre</param>
+        /// <param name="type">Tipo de producto para filtrar</param>
+        /// <param name="sortOrder">Orden de clasificación, ascendente o descendente</param>
+        /// <param name="pageNumber">Número de página para la paginación</param>
+        /// <param name="pageSize">Cantidad de productos por página</param>
+        /// <returns>Una lista de productos disponibles en formato DTO</returns>
         [HttpGet("available")]
         public async Task<IActionResult> GetAvailableProducts(
             string searchQuery = "",  // Parámetro para filtrar productos por nombre
@@ -63,7 +79,11 @@ namespace TallerIDWMBackend.Controllers
             });
         }
 
-        // Endpoint para obtener un producto por su ID
+        /// <summary>
+        /// Obtiene un producto específico por su ID.
+        /// </summary>
+        /// <param name="id">ID del producto</param>
+        /// <returns>El producto encontrado en formato DTO, o un mensaje de error si no se encuentra</returns>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProductById(long id)
         {
@@ -87,7 +107,15 @@ namespace TallerIDWMBackend.Controllers
             return Ok(productDto);
         }
 
-        // Endpoint para obtener todos los productos con acceso restringido a administradores
+        /// <summary>
+        /// Obtiene todos los productos para administradores, con acceso restringido.
+        /// </summary>
+        /// <param name="searchQuery">Cadena para filtrar productos por nombre</param>
+        /// <param name="type">Tipo de producto para filtrar</param>
+        /// <param name="sortOrder">Orden de clasificación, ascendente o descendente</param>
+        /// <param name="pageNumber">Número de página para la paginación</param>
+        /// <param name="pageSize">Cantidad de productos por página</param>
+        /// <returns>Una lista de todos los productos en formato DTO</returns>
         [HttpGet("all")]
         [Authorize(Roles = "Admin")]  // Solo accesible por administradores
         public async Task<IActionResult> GetAllProductsForAdmin(
@@ -125,7 +153,11 @@ namespace TallerIDWMBackend.Controllers
             });
         }
 
-        // Endpoint para agregar un nuevo producto
+        /// <summary>
+        /// Agrega un nuevo producto a la base de datos. Solo accesible para administradores.
+        /// </summary>
+        /// <param name="productDto">DTO con los datos del producto a agregar</param>
+        /// <returns>El producto creado en formato DTO</returns>
         [HttpPost]
         [Authorize(Roles = "Admin")]  // Solo accesible por administradores
         public async Task<IActionResult> AddProduct([FromForm] ProductCreateUpdateDto productDto)
@@ -176,7 +208,12 @@ namespace TallerIDWMBackend.Controllers
             }
         }
 
-        // Endpoint para actualizar un producto existente
+        /// <summary>
+        /// Actualiza un producto existente. Solo accesible para administradores.
+        /// </summary>
+        /// <param name="id">ID del producto a actualizar</param>
+        /// <param name="productDto">DTO con los nuevos datos del producto</param>
+        /// <returns>El producto actualizado en formato DTO</returns>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]  // Solo accesible por administradores
         public async Task<IActionResult> UpdateProduct(long id, [FromForm] ProductCreateUpdateDto productDto)
@@ -241,7 +278,11 @@ namespace TallerIDWMBackend.Controllers
                 return Conflict(new { message = ex.Message });
             }
         }
-        // Endpoint para eliminar un producto
+        /// <summary>
+        /// Elimina un producto de la base de datos. Solo accesible para administradores.
+        /// </summary>
+        /// <param name="id">ID del producto a eliminar</param>
+        /// <returns>Un mensaje indicando el resultado de la eliminación</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]// Solo accesible por administradores
         public async Task<IActionResult> DeleteProduct(long id)
