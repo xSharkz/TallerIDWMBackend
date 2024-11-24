@@ -17,6 +17,7 @@ namespace TallerIDWMBackend.DTOs.User
     [DateInThePast(ErrorMessage = "La fecha de nacimiento debe ser anterior a la fecha actual.")]
     public DateTime? BirthDate { get; set; }
 
+    [RegularExpression(@"^(Femenino|Masculino|Prefiero no decirlo|Otro)$", ErrorMessage = "El genero debe ser uno de los siguientes: Femenino, Masculino, Prefiero no decirlo, Otro.")]
     public string? Gender { get; set; } = null!; // Femenino, Masculino, Prefiero no decirlo, Otro
     }
 }

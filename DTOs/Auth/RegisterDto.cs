@@ -29,7 +29,8 @@ namespace TallerIDWMBackend.DTOs.Auth
         public string Email { get; set; } = null!;
 
         [Required]
-        public string Gender { get; set; } = null!; // Femenino, Masculino, Prefiero no decirlo, Otro
+        [RegularExpression(@"^(Femenino|Masculino|Prefiero no decirlo|Otro)$", ErrorMessage = "El genero debe ser uno de los siguientes: Femenino, Masculino, Prefiero no decirlo, Otro.")]
+        public string Gender { get; set; } = null!;
 
         [Required]
         [StringLength(20, MinimumLength = 8)]
