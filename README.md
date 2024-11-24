@@ -22,7 +22,7 @@ Este es el proyecto backend para TallerIDWM, construido con C# y .NET. El proyec
 Antes de comenzar, asegúrate de haber cumplido con los siguientes requisitos:
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- [Visual Studio o Visual Studio Code]()
+- [Visual Studio o Visual Studio Code](https://visualstudio.microsoft.com/es/downloads/)
 - [Base de datos SQL (SQL Server u otro)]()
 
 ## Instalación
@@ -96,6 +96,8 @@ Antes de comenzar, asegúrate de haber cumplido con los siguientes requisitos:
    JWT_SECRET_KEY=<tu_clave_secreta_para_JWT>
 
 2. **Configurar `appsettings.json`** con la configuración de Cloudinary:
+
+   ```env
    "CloudinarySettings": {
    "CloudName": "<tu_cloud_name>",
    "ApiKey": "<tu_api_key>",
