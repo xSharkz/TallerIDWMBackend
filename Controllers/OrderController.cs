@@ -18,14 +18,28 @@ namespace TallerIDWMBackend.Controllers
         private readonly IOrderService _orderService;  // Servicio para manejar órdenes
         private readonly IUserRepository _userRepository;  // Repositorio de usuarios para obtener datos del usuario actual
 
-        // Constructor que recibe los servicios necesarios para este controlador
+        /// <summary>
+        /// Constructor que recibe los servicios necesarios para este controlador.
+        /// </summary>
+        /// <param name="orderService">Servicio para manejar órdenes.</param>
+        /// <param name="userRepository">Repositorio de usuarios.</param>
         public OrderController(IOrderService orderService, IUserRepository userRepository)
         {
             _orderService = orderService;
             _userRepository = userRepository;
         }
 
-        // Endpoint para que el administrador obtenga todas las órdenes con opciones de paginación, búsqueda y ordenamiento
+        /// <summary>
+        /// Endpoint para que el administrador obtenga todas las órdenes con opciones de paginación, búsqueda y ordenamiento.
+        /// Solo los administradores pueden acceder a este endpoint.
+        /// </summary>
+        /// <param name="pageNumber">Número de página (opcional, valor por defecto 1).</param>
+        /// <param name="pageSize">Cantidad de órdenes por página (opcional, valor por defecto 10).</param>
+        /// <param name="searchTerm">Término de búsqueda (opcional).</param>
+        /// <param name="sortOrder">Orden de clasificación (opcional).</param>
+        /// <returns>Una lista de órdenes con los parámetros solicitados.</returns>
+        /// <response code="200">Devuelve las órdenes encontradas.</response>
+        /// <response code="500">Error interno del servidor si ocurre una excepción.</response>
         [HttpGet]
         [Authorize(Roles = "Admin")]  // Solo los administradores pueden acceder a este endpoint
         public async Task<IActionResult> GetOrders(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, string? sortOrder = null)
@@ -43,7 +57,17 @@ namespace TallerIDWMBackend.Controllers
             }
         }
 
-        // Endpoint para que un usuario obtenga sus propias órdenes con paginación
+        /// <summary>
+        /// Endpoint para que un usuario obtenga sus propias órdenes con paginación.
+        /// Solo los usuarios con el rol "Customer" pueden acceder a este endpoint.
+        /// </summary>
+        /// <param name="pageNumber">Número de página (opcional, valor por defecto 1).</param>
+        /// <param name="pageSize">Cantidad de órdenes por página (opcional, valor por defecto 10).</param>
+        /// <returns>Una lista de las órdenes del usuario actual.</returns>
+        /// <response code="200">Devuelve las órdenes del usuario encontrado.</response>
+        /// <response code="404">Si el usuario no es encontrado.</response>
+        /// <response code="403">Si el usuario intenta acceder a las órdenes de otro usuario.</response>
+        /// <response code="500">Error interno del servidor si ocurre una excepción.</response>
         [HttpGet("orders")]
         [Authorize(Roles = "Customer")]  // Solo los usuarios con el rol "Customer" pueden acceder
         public async Task<IActionResult> GetUserOrders(int pageNumber = 1, int pageSize = 10)

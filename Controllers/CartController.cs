@@ -15,11 +15,21 @@ using TallerIDWMBackend.Interfaces;
 
 namespace TallerIDWMBackend.Controllers
 {
+    /// <summary>
+    /// Controlador para gestionar el carrito de compras de los usuarios. Permite agregar productos al carrito, 
+    /// actualizar cantidades, ver el contenido del carrito, eliminar productos y realizar el checkout.
+    /// </summary>
     [ApiController] // Indica que esta clase es un controlador de API que maneja solicitudes HTTP.
     [Route("api/[controller]")] // Establece la ruta base para las solicitudes de este controlador. "[controller]" se reemplaza automáticamente con el nombre de la clase, en este caso, "cart".
     public class CartController : ControllerBase
     {
-        // Declara los servicios y repositorios necesarios para la lógica del controlador.
+        /// <summary>
+        /// Constructor que inicializa el controlador con las dependencias necesarias para interactuar 
+        /// con la base de datos, generar facturas y acceder al repositorio de productos.
+        /// </summary>
+        /// <param name="dataContext">Contexto de la base de datos.</param>
+        /// <param name="invoiceService">Servicio para manejar la facturación.</param>
+        /// <param name="productRepository">Repositorio para acceder a los datos de los productos.</param>
         private readonly ApplicationDbContext _dataContext; // Contexto de la base de datos, se utiliza para interactuar con la base de datos.
         private readonly InvoiceService _invoiceService; // Servicio encargado de la lógica relacionada con las facturas.
         private readonly IProductRepository _productRepository; // Repositorio de productos para acceder a los datos de productos en la base de datos.
@@ -33,7 +43,12 @@ namespace TallerIDWMBackend.Controllers
             _productRepository = productRepository;
         }
 
-        // 1. Agregar un producto al carrito
+        /// <summary>
+        /// Agrega un producto al carrito de compras del usuario. Si el producto ya está en el carrito, 
+        /// incrementa su cantidad.
+        /// </summary>
+        /// <param name="productId">ID del producto que se va a agregar al carrito.</param>
+        /// <returns>Una respuesta HTTP con el estado de la operación.</returns>
         [HttpPost("add-to-cart/{productId}")]
         [Authorize]
         public async Task<IActionResult> AddToCart(long productId)
@@ -111,7 +126,12 @@ namespace TallerIDWMBackend.Controllers
         }
 
 
-
+        /// <summary>
+        /// Actualiza la cantidad de un producto en el carrito de compras.
+        /// </summary>
+        /// <param name="productId">ID del producto cuyo cantidad se va a actualizar.</param>
+        /// <param name="newQuantity">Nueva cantidad para el producto en el carrito.</param>
+        /// <returns>Una respuesta HTTP con el estado de la operación.</returns>
         [HttpPost("update-quantity/{productId}")]
         [Authorize]
         public async Task<IActionResult> UpdateQuantity(long productId, [FromForm] int newQuantity)
@@ -169,7 +189,10 @@ namespace TallerIDWMBackend.Controllers
             return Ok(new { message = "Cantidad actualizada.", cartItems });
         }
 
-        // 4. Visualizar carrito
+        /// <summary>
+        /// Muestra los productos en el carrito de compras del usuario, junto con el subtotal y total.
+        /// </summary>
+        /// <returns>Una respuesta HTTP con el contenido del carrito y el total a pagar.</returns>
         [HttpGet("view")]
         [Authorize]
         public async Task<IActionResult> ViewCart()
@@ -226,7 +249,11 @@ namespace TallerIDWMBackend.Controllers
             });
         }
 
-
+        /// <summary>
+        /// Elimina un producto del carrito de compras del usuario.
+        /// </summary>
+        /// <param name="productId">ID del producto a eliminar del carrito.</param>
+        /// <returns>Una respuesta HTTP con el estado de la operación.</returns>
         [HttpPost("remove-item/{productId}")] // Define la ruta para eliminar un producto del carrito, donde {productId} es un parámetro de la URL.
         [Authorize] // Indica que este método requiere que el usuario esté autenticado.
         public IActionResult RemoveItem(long productId)
@@ -270,7 +297,11 @@ namespace TallerIDWMBackend.Controllers
 
 
 
-        // Ruta para realizar el checkout del carrito de compras, requiere que el usuario esté autenticado con el rol de "Customer".
+        /// <summary>
+        /// Realiza el checkout del carrito, procesando los productos y calculando el total.
+        /// </summary>
+        /// <param name="address">Dirección de entrega del usuario.</param>
+        /// <returns>Una respuesta HTTP con el estado de la operación.</returns>
         [HttpPost("checkout")]
         [Authorize(Roles = "Customer")] // Requiere que el usuario tenga el rol de "Customer".
         public async Task<IActionResult> Checkout([FromForm] DeliveryAddressDto address)
@@ -371,7 +402,9 @@ namespace TallerIDWMBackend.Controllers
         }
 
 
-
+        /// <summary>
+        /// Elimina todos los productos del carrito de compras del usuario.
+        /// </summary>
         [HttpPost("clear-cart")]
         public IActionResult ClearCart()
         {

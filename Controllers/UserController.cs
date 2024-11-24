@@ -7,29 +7,40 @@ using TallerIDWMBackend.Repository;
 
 namespace TallerIDWMBackend.Controllers
 {
+    /// <summary>
+    /// Controlador que maneja las operaciones relacionadas con los usuarios, como la edición de perfil,
+    /// cambio de contraseña, obtención de clientes y actualización del estado de los usuarios.
+    /// </summary>
     [ApiController] // Atributo que indica que esta clase es un controlador de API
     [Route("api/[controller]")] // Define la ruta base para este controlador
     public class UserController : ControllerBase
     {
         private readonly IUserRepository _userRepository; // Interfaz del repositorio de usuarios
 
-        // Constructor que inyecta la dependencia del repositorio de usuarios
+        /// <summary>
+        /// Constructor que inyecta la dependencia del repositorio de usuarios.
+        /// </summary>
+        /// <param name="userRepository">Repositorio de usuarios que será utilizado para acceder a los datos del usuario.</param>
         public UserController(IUserRepository userRepository)
         {
             _userRepository = userRepository;
         }
 
-        // 1. Editar perfil de usuario
-        [HttpPut("edit-profile")] // Ruta para actualizar el perfil
-        [Authorize(Roles = "Customer,Admin")] // Requiere estar autenticado y tener el rol de Customer o Admin
+        /// <summary>
+        /// Permite editar el perfil del usuario.
+        /// Solo accesible para usuarios con los roles de Customer o Admin.
+        /// </summary>
+        /// <param name="editProfileDto">Objeto que contiene los nuevos datos del perfil del usuario.</param>
+        /// <returns>Resultado de la operación con mensaje de éxito o error.</returns>
+        [HttpPut("edit-profile")]
+        [Authorize(Roles = "Customer,Admin")]
         public async Task<IActionResult> EditProfile([FromForm] EditProfileDto editProfileDto)
         {
-            // Obtener el usuario actual usando el método GetCurrentUserAsync del repositorio
             var user = await _userRepository.GetCurrentUserAsync();
 
             if (user == null)
             {
-                return NotFound(new { message = "Usuario no encontrado." }); // Si el usuario no se encuentra, retorna 404
+                return NotFound(new { message = "Usuario no encontrado." });
             }
 
             // Mantener el nombre actual si no se proporciona un nuevo valor en editProfileDto
@@ -37,47 +48,53 @@ namespace TallerIDWMBackend.Controllers
             user.BirthDate = editProfileDto.BirthDate ?? user.BirthDate;
             user.Gender = editProfileDto.Gender ?? user.Gender;
 
-            // Actualizar los datos del usuario en la base de datos
             await _userRepository.UpdateUserAsync(user);
 
-            return Ok(new { message = "Perfil actualizado exitosamente." }); // Respuesta exitosa
+            return Ok(new { message = "Perfil actualizado exitosamente." });
         }
 
-        // 2. Cambiar contraseña
-        [HttpPut("change-password")] // Ruta para cambiar la contraseña
-        [Authorize(Roles = "Customer,Admin")] // Requiere estar autenticado y tener el rol de Customer o Admin
+        /// <summary>
+        /// Permite cambiar la contraseña del usuario.
+        /// Solo accesible para usuarios con los roles de Customer o Admin.
+        /// </summary>
+        /// <param name="changePasswordDto">Objeto que contiene la contraseña actual y la nueva contraseña.</param>
+        /// <returns>Resultado de la operación con mensaje de éxito o error.</returns>
+        [HttpPut("change-password")]
+        [Authorize(Roles = "Customer,Admin")]
         public async Task<IActionResult> ChangePassword([FromForm] ChangePasswordDto changePasswordDto)
         {
-            // Obtener el usuario actual usando el método GetCurrentUserAsync del repositorio
             var user = await _userRepository.GetCurrentUserAsync();
 
             if (user == null)
             {
-                return NotFound(new { message = "Usuario no encontrado." }); // Si el usuario no se encuentra, retorna 404
+                return NotFound(new { message = "Usuario no encontrado." });
             }
 
-            // Verificar que la contraseña actual sea correcta
             if (!BCrypt.Net.BCrypt.Verify(changePasswordDto.CurrentPassword, user.PasswordHash))
             {
-                return Unauthorized(new { message = "Contraseña actual incorrecta." }); // Si la contraseña no coincide, retorna 401
+                return Unauthorized(new { message = "Contraseña actual incorrecta." });
             }
 
-            // Cambiar la contraseña del usuario
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(changePasswordDto.NewPassword);
-            await _userRepository.UpdateUserAsync(user); // Actualizar la contraseña en la base de datos
+            await _userRepository.UpdateUserAsync(user);
 
-            return Ok(new { message = "Contraseña cambiada exitosamente." }); // Respuesta exitosa
+            return Ok(new { message = "Contraseña cambiada exitosamente." });
         }
 
-        // 3. Obtener todos los clientes
-        [HttpGet("customers")] // Ruta para obtener los clientes
-        [Authorize(Roles = "Admin")] // Solo accesible para usuarios con el rol de Admin
+        /// <summary>
+        /// Obtiene una lista de todos los clientes registrados.
+        /// Solo accesible para usuarios con el rol de Admin.
+        /// </summary>
+        /// <param name="page">Número de página para paginación (valor por defecto: 1).</param>
+        /// <param name="pageSize">Número de elementos por página (valor por defecto: 10).</param>
+        /// <param name="searchQuery">Texto para buscar en los usuarios (valor por defecto: vacío).</param>
+        /// <returns>Lista paginada de los usuarios con sus detalles.</returns>
+        [HttpGet("customers")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetCustomers([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string searchQuery = "")
         {
-            // Obtener los usuarios paginados desde el repositorio
             var paginatedUsers = await _userRepository.GetPaginatedUsersAsync(page, pageSize, searchQuery);
 
-            // Convertir los usuarios obtenidos a un DTO de respuesta
             var userDtos = paginatedUsers.Items.Select(user => new UserDto
             {
                 Id = user.Id,
@@ -90,30 +107,33 @@ namespace TallerIDWMBackend.Controllers
 
             return Ok(new PaginatedResponseDto<UserDto>
             {
-                Items = userDtos, // Items con los usuarios
-                TotalPages = paginatedUsers.TotalPages, // Total de páginas
-                CurrentPage = paginatedUsers.CurrentPage // Página actual
+                Items = userDtos,
+                TotalPages = paginatedUsers.TotalPages,
+                CurrentPage = paginatedUsers.CurrentPage
             });
         }
 
-        // 4. Actualizar el estado del usuario (habilitado/deshabilitado)
-        [HttpPut("update-status")] // Ruta para actualizar el estado del usuario
-        [Authorize(Roles = "Admin")] // Solo accesible para usuarios con el rol de Admin
+        /// <summary>
+        /// Actualiza el estado de un usuario (habilitado o deshabilitado).
+        /// Solo accesible para usuarios con el rol de Admin.
+        /// </summary>
+        /// <param name="updateUserStatusDto">Objeto que contiene el ID del usuario y el nuevo estado (habilitado o deshabilitado).</param>
+        /// <returns>Resultado de la operación con mensaje de éxito o error.</returns>
+        [HttpPut("update-status")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateUserStatus([FromForm] UpdateUserStatusDto updateUserStatusDto)
         {
-            // Obtener el usuario por su ID
             var user = await _userRepository.GetUserByIdAsync(updateUserStatusDto.UserId);
 
             if (user == null)
             {
-                return NotFound(new { message = "Usuario no encontrado." }); // Si no se encuentra el usuario, retorna 404
+                return NotFound(new { message = "Usuario no encontrado." });
             }
 
-            // Actualizar el estado del usuario
             await _userRepository.UpdateUserStatusAsync(updateUserStatusDto.UserId, updateUserStatusDto.IsEnabled);
-            var status = updateUserStatusDto.IsEnabled ? "habilitada" : "deshabilitada"; // Definir el estado del usuario
+            var status = updateUserStatusDto.IsEnabled ? "habilitada" : "deshabilitada";
 
-            return Ok(new { message = $"Cuenta de usuario {status} exitosamente." }); // Respuesta exitosa
+            return Ok(new { message = $"Cuenta de usuario {status} exitosamente." });
         }
     }
 }

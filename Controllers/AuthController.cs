@@ -16,50 +16,55 @@ namespace TallerIDWMBackend.Controllers
         private readonly IAuthService _authService; // Servicio para manejar operaciones de autenticación
         private readonly IUserRepository _userRepository;  // Repositorio para manejar la información del usuario
 
-        // Constructor que inyecta las dependencias necesarias
+        /// <summary>
+        /// Constructor que inyecta las dependencias necesarias.
+        /// </summary>
+        /// <param name="authService">Servicio de autenticación.</param>
+        /// <param name="userRepository">Repositorio de usuarios.</param>
         public AuthController(IAuthService authService, IUserRepository userRepository)
         {
             _authService = authService;
             _userRepository = userRepository;  // Asignar el repositorio
         }
 
-        // POST: api/auth/register
-        // Método para registrar un nuevo usuario
+        /// <summary>
+        /// Registra un nuevo usuario.
+        /// </summary>
+        /// <param name="registerDto">Datos del nuevo usuario.</param>
+        /// <returns>Un mensaje con el resultado del registro.</returns>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromForm] RegisterDto registerDto)
         {
-            // Verifica que el modelo de datos sea válido
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);  // Si no es válido, devuelve BadRequest con los detalles del error
+                return BadRequest(ModelState);  // Si el modelo no es válido, devuelve BadRequest
 
             try
             {
-                // Llama al servicio de autenticación para registrar al usuario
                 var message = await _authService.RegisterAsync(registerDto);
-                return Ok(message);  // Si el registro es exitoso, devuelve un mensaje de éxito
+                return Ok(message);  // Devuelve mensaje de éxito
             }
             catch (InvalidOperationException ex)
             {
-                // Si ocurre un error en el proceso, devuelve BadRequest con el mensaje de error
-                return BadRequest(ex.Message);
+                return BadRequest(ex.Message);  // Si ocurre un error, devuelve BadRequest con el mensaje de error
             }
         }
 
-        // POST: api/auth/login
-        // Método para iniciar sesión con un usuario existente
+        /// <summary>
+        /// Inicia sesión de un usuario existente.
+        /// </summary>
+        /// <param name="loginDto">Datos de inicio de sesión (correo y contraseña).</param>
+        /// <returns>Un mensaje con el resultado del inicio de sesión y un token JWT.</returns>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromForm] LoginDto loginDto)
         {
-            // Verifica que el modelo de datos sea válido
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);  // Si no es válido, devuelve BadRequest con los detalles del error
+                return BadRequest(ModelState);  // Si el modelo no es válido, devuelve BadRequest
 
             try
             {
-                // Llama al servicio de autenticación para obtener un token JWT
                 var token = await _authService.LoginAsync(loginDto.Email, loginDto.Password);
 
-                // Configuración de las cookies para almacenar el token JWT
+                // Configura las cookies con el token JWT
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
@@ -68,31 +73,27 @@ namespace TallerIDWMBackend.Controllers
                     Expires = DateTime.UtcNow.AddHours(24)
                 };
 
-                // Guarda el token en una cookie con las opciones de seguridad configuradas
                 Response.Cookies.Append("jwt_token", token, cookieOptions);
-
-                // Devuelve un mensaje de éxito junto con el token
                 return Ok(new { Message = "Inicio de sesión exitoso", Token = token });
             }
             catch (UnauthorizedAccessException ex)
             {
-                // Si las credenciales son incorrectas, devuelve Unauthorized con el mensaje de error
-                return Unauthorized(ex.Message);
+                return Unauthorized(ex.Message);  // Si las credenciales son incorrectas, devuelve Unauthorized
             }
             catch (InvalidOperationException ex)
             {
-                // Si ocurre un error interno en el proceso, devuelve un error 500
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, ex.Message);  // Si ocurre un error interno, devuelve un error 500
             }
         }
 
-        // POST: api/auth/logout
-        // Método para cerrar sesión del usuario actual
+        /// <summary>
+        /// Cierra la sesión del usuario actual.
+        /// </summary>
+        /// <returns>Un mensaje indicando que la sesión fue cerrada correctamente.</returns>
         [HttpPost("logout")]
         [Authorize]  // Requiere que el usuario esté autenticado
         public IActionResult Logout()
         {
-            // Configuración de las cookies para eliminar el token JWT
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
@@ -101,43 +102,38 @@ namespace TallerIDWMBackend.Controllers
                 SameSite = SameSiteMode.Strict
             };
 
-            // Elimina el token JWT de las cookies
             Response.Cookies.Append("jwt_token", "", cookieOptions);
-
-            // Devuelve un mensaje de éxito indicando que la sesión fue cerrada correctamente
             return Ok(new { message = "Sesión cerrada correctamente." });
         }
 
-        // DELETE: api/auth/delete-account
-        // Método para eliminar la cuenta del usuario deshabilitándola
+        /// <summary>
+        /// Elimina la cuenta del usuario deshabilitándola.
+        /// </summary>
+        /// <returns>Un mensaje con el resultado de la eliminación de la cuenta.</returns>
         [HttpDelete("delete-account")]
         [Authorize]  // Requiere que el usuario esté autenticado
         public async Task<IActionResult> DeleteAccount()
         {
-            // Obtiene el ID del usuario desde el contexto de la sesión
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null)
             {
-                return BadRequest("No se pudo encontrar la información del usuario.");  // Si no se encuentra el ID del usuario, devuelve error
+                return BadRequest("No se pudo encontrar la información del usuario.");
             }
 
             long userId = long.Parse(userIdClaim.Value);
-
-            // Obtiene el usuario a eliminar
             var user = await _userRepository.GetUserByIdAsync(userId);
             if (user == null)
             {
-                return NotFound("Usuario no encontrado.");  // Si el usuario no existe, devuelve error
+                return NotFound("Usuario no encontrado.");
             }
 
-            // Deshabilita la cuenta del usuario (no la elimina permanentemente)
+            // Deshabilita la cuenta del usuario
             user.IsEnabled = false;
             await _userRepository.UpdateUserAsync(user);
 
-            // Cierra sesión del usuario después de la eliminación de la cuenta
+            // Cierra sesión después de la eliminación de la cuenta
             Logout();
 
-            // Devuelve un mensaje de éxito
             return Ok("Cuenta eliminada exitosamente.");
         }
     }
