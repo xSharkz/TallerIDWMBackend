@@ -12,23 +12,32 @@ using TallerIDWMBackend.DTOs.Auth;
 
 namespace TallerIDWMBackend.Services
 {
-    public interface IAuthService
-    {
-        Task<string> LoginAsync(string email, string password);
-        Task<string> RegisterAsync(RegisterDto registerDto);
-    }
-
+    /// <summary>
+    /// Implementación del servicio de autenticación que gestiona el registro y el inicio de sesión de usuarios, 
+    /// incluyendo la validación de credenciales y la generación de tokens JWT.
+    /// </summary>
     public class AuthService : IAuthService
     {
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
-
+        /// <summary>
+        /// Inicializa una nueva instancia de la clase <see cref="AuthService"/> con el repositorio de usuarios y la configuración de la aplicación.
+        /// </summary>
+        /// <param name="userRepository">Repositorio para interactuar con los usuarios en la base de datos.</param>
+        /// <param name="configuration">Configuración de la aplicación que incluye valores como la clave secreta para JWT.</param>
         public AuthService(IUserRepository userRepository, IConfiguration configuration)
         {
             _userRepository = userRepository;
             _configuration = configuration;
         }
-
+        /// <summary>
+        /// Inicia sesión de un usuario, validando las credenciales y generando un token JWT si son correctas.
+        /// </summary>
+        /// <param name="email">El correo electrónico del usuario.</param>
+        /// <param name="password">La contraseña del usuario.</param>
+        /// <returns>Un token JWT que autoriza al usuario a acceder a los recursos protegidos.</returns>
+        /// <exception cref="UnauthorizedAccessException">Se lanza si el correo electrónico o la contraseña son incorrectos, o si la cuenta está deshabilitada.</exception>
+        /// <exception cref="InvalidOperationException">Se lanza si la clave secreta de JWT no está configurada o es demasiado corta.</exception>
         public async Task<string> LoginAsync(string email, string password)
         {
             var user = await _userRepository.GetUserByEmailAsync(email);
@@ -68,7 +77,12 @@ namespace TallerIDWMBackend.Services
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
-
+        /// <summary>
+        /// Registra un nuevo usuario en el sistema, validando que el correo electrónico y el RUT no estén ya registrados.
+        /// </summary>
+        /// <param name="registerDto">Los datos del usuario a registrar.</param>
+        /// <returns>Un mensaje que indica el éxito del registro.</returns>
+        /// <exception cref="InvalidOperationException">Se lanza si el correo electrónico o el RUT ya están registrados.</exception>
         public async Task<string> RegisterAsync(RegisterDto registerDto)
         {
             if (await _userRepository.IsEmailOrRutRegisteredAsync(registerDto.Email, registerDto.Rut))

@@ -11,8 +11,17 @@ using TallerIDWMBackend.Models;
 
 namespace TallerIDWMBackend.Services
 {
+    /// <summary>
+    /// Servicio que maneja la generación de facturas en formato PDF para las órdenes de compra.
+    /// </summary>
     public class InvoiceService
     {
+        /// <summary>
+        /// Genera una factura en formato PDF para una orden de compra específica.
+        /// </summary>
+        /// <param name="order">La orden de compra que se utilizará para generar la factura.</param>
+        /// <param name="cartItems">La lista de artículos del carrito asociados a la orden.</param>
+        /// <returns>Un arreglo de bytes que representa el archivo PDF de la factura.</returns>
         public byte[] GenerateInvoicePdf(Order order, List<CartItem> cartItems)
         {
             using (var stream = new MemoryStream())
